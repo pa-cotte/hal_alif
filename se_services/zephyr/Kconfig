@@ -8,6 +8,6 @@
 config SE_SERVICE_INIT_PRIORITY
 	int "SE service MHUv2 nodes Init priority"
 	depends on ARM_MHUV2
-	default 60
+	default 45
 	help
 	  SE service MHUv2 nodes initialization priority.
