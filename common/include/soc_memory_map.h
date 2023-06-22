@@ -25,7 +25,7 @@ extern "C" {
 
 static inline uint32_t local_to_global(const volatile void *local_addr)
 {
-#if defined(CONFIG_SOC_E7_APSS)
+#if defined(CONFIG_SOC_E7_AK_APSS) || defined(CONFIG_SOC_E7_DK_APSS)
 	return (uint32_t)local_addr;
 #else
 	uint32_t addr = (uint32_t)local_addr;
