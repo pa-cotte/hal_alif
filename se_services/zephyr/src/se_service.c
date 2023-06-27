@@ -30,12 +30,17 @@ static K_MUTEX_DEFINE(svc_mutex);
 const struct device *send_dev;
 const struct device *recv_dev;
 
-static service_header_t service_header;
-static get_rnd_svc_t get_rnd_svc_d;
-static get_se_revision_t get_se_revision_svc_d;
-static get_toc_number_svc_t get_toc_number_svc_d;
-static get_device_part_svc_t get_device_part_svc_d;
-static read_otp_data_t read_otp_svc_d;
+
+typedef union {
+	service_header_t service_header;
+	get_rnd_svc_t get_rnd_svc_d;
+	get_se_revision_t get_se_revision_svc_d;
+	get_toc_number_svc_t get_toc_number_svc_d;
+	get_device_part_svc_t get_device_part_svc_d;
+	read_otp_data_t read_otp_svc_d;
+} se_service_all_svc_t;
+
+static se_service_all_svc_t se_service_all_svc_d;
 
 // Needed for future APIs
 #if 0
@@ -156,7 +161,7 @@ static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size)
 	__asm__ volatile ("dmb 0xF":::"memory");
 	sys_cache_data_flush_range(ptr, dcache_size);
 
-        err = mhuv2_ipm_send(send_dev, CH_ID, &global_address);
+	err = mhuv2_ipm_send(send_dev, CH_ID, &global_address);
         if(err)
         {
                 LOG_ERR("failed to send request for RND (error: %d)\n", err);
@@ -201,10 +206,11 @@ int se_service_heartbeat(void)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&service_header, 0, sizeof(service_header));
-	service_header.hdr_service_id = SERVICE_MAINTENANCE_HEARTBEAT_ID;
-	err = send_msg_to_se((uint32_t *)&service_header,
-			       sizeof(service_header));
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.service_header.hdr_service_id =
+					SERVICE_MAINTENANCE_HEARTBEAT_ID;
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.service_header,
+			       sizeof(se_service_all_svc_d.service_header));
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
@@ -245,19 +251,21 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&get_rnd_svc_d, 0, sizeof(get_rnd_svc_d));
-	get_rnd_svc_d.header.hdr_service_id = SERVICE_CRYPTOCELL_GET_RND;
-	get_rnd_svc_d.send_rnd_length = length;
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_rnd_svc_d.header.hdr_service_id =
+					SERVICE_CRYPTOCELL_GET_RND;
+	se_service_all_svc_d.get_rnd_svc_d.send_rnd_length = length;
 
-	err = send_msg_to_se((uint32_t *)&get_rnd_svc_d,
-			       sizeof(get_rnd_svc_d));
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_rnd_svc_d,
+			       sizeof(se_service_all_svc_d.get_rnd_svc_d));
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
 		LOG_ERR("service_get_rnd_num failed with %d\n", err);
 		return err;
 	}
-	memcpy(buffer, (uint8_t *)get_rnd_svc_d.resp_rnd, length);
+	memcpy(buffer, (uint8_t *)se_service_all_svc_d.get_rnd_svc_d.resp_rnd,
+	       length);
 
 	return 0;
 }
@@ -292,12 +300,13 @@ int se_service_get_toc_number(uint32_t *ptoc)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&get_toc_number_svc_d, 0, sizeof(get_toc_number_svc_d));
-	get_toc_number_svc_d.header.hdr_service_id =
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_toc_number_svc_d.header.hdr_service_id =
 					SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER;
 
-	err = send_msg_to_se((uint32_t *)&get_toc_number_svc_d,
-			       sizeof(get_toc_number_svc_d));
+	err = send_msg_to_se((uint32_t *)
+		&se_service_all_svc_d.get_toc_number_svc_d,
+		sizeof(se_service_all_svc_d.get_toc_number_svc_d));
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
@@ -305,7 +314,7 @@ int se_service_get_toc_number(uint32_t *ptoc)
 		return err;
 	}
 
-	*ptoc = get_toc_number_svc_d.resp_number_of_toc;
+	*ptoc = se_service_all_svc_d.get_toc_number_svc_d.resp_number_of_toc;
 
 	return 0;
 }
@@ -341,20 +350,22 @@ int se_service_get_se_revision(uint8_t *prev)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&get_se_revision_svc_d, 0, sizeof(get_se_revision_svc_d));
-	get_se_revision_svc_d.header.hdr_service_id =
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_se_revision_svc_d.header.hdr_service_id =
 					SERVICE_APPLICATION_FIRMWARE_VERSION_ID;
 
-	err = send_msg_to_se((uint32_t *)&get_se_revision_svc_d,
-			       sizeof(get_se_revision_svc_d));
+	err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.get_se_revision_svc_d,
+			sizeof(se_service_all_svc_d.get_se_revision_svc_d));
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
 		LOG_ERR("service_get_toc_number failed with %d\n", err);
 		return err;
 	}
-	memcpy(prev, (uint8_t *)get_se_revision_svc_d.resp_se_revision,
-	       get_se_revision_svc_d.resp_se_revision_length);
+	memcpy(prev, (uint8_t *)
+	se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision,
+	se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision_length);
 
 	return 0;
 }
@@ -389,19 +400,21 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&get_device_part_svc_d, 0, sizeof(get_device_part_svc_d));
-	get_device_part_svc_d.header.hdr_service_id =
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_device_part_svc_d.header.hdr_service_id =
 				SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER;
 
-	err = send_msg_to_se((uint32_t *)&get_device_part_svc_d,
-			       sizeof(get_device_part_svc_d));
+	err = send_msg_to_se((uint32_t *)
+		&se_service_all_svc_d.get_device_part_svc_d,
+		sizeof(se_service_all_svc_d.get_device_part_svc_d));
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
 		LOG_ERR("service_get_toc_number failed with %d\n", err);
 		return err;
 	}
-	*pdev_part = get_device_part_svc_d.resp_device_string;
+	*pdev_part =
+		se_service_all_svc_d.get_device_part_svc_d.resp_device_string;
 
 	return 0;
 }
@@ -438,16 +451,18 @@ int se_service_read_otp(uint32_t *potp_data)
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
-	memset(&read_otp_svc_d, 0, sizeof(read_otp_svc_d));
-	read_otp_svc_d.header.hdr_service_id = SERVICE_SYSTEM_MGMT_READ_OTP;
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.read_otp_svc_d.header.hdr_service_id =
+					SERVICE_SYSTEM_MGMT_READ_OTP;
 
 	for(otp_row = OTP_MANUFACTURE_INFO_SERIAL_NUMBER_START ;
 	    otp_row<=OTP_MANUFACTURE_INFO_SERIAL_NUMBER_END ;
 	    otp_row++, potp_data++)
 	{
-		read_otp_svc_d.send_offset = otp_row;
-		err = send_msg_to_se((uint32_t *)&read_otp_svc_d,
-			       sizeof(read_otp_svc_d));
+		se_service_all_svc_d.read_otp_svc_d.send_offset = otp_row;
+		err = send_msg_to_se((uint32_t *)
+				&se_service_all_svc_d.read_otp_svc_d,
+				sizeof(se_service_all_svc_d.read_otp_svc_d));
 		if (err)
 		{
 			k_mutex_unlock(&svc_mutex);
@@ -455,7 +470,7 @@ int se_service_read_otp(uint32_t *potp_data)
 				err);
 			return err;
 		}
-		*potp_data = read_otp_svc_d.resp_otp_word;
+		*potp_data = se_service_all_svc_d.read_otp_svc_d.resp_otp_word;
 	}
 	k_mutex_unlock(&svc_mutex);
 	return 0;
