@@ -6,12 +6,14 @@
 # License Agreement with this file. If not, please write to:
 # contact@alifsemi.com, or visit: https://alifsemi.com/license
 
+zephyr_library()
+zephyr_library_sources(common/src/mram_rw.c)
+
 if(CONFIG_HAS_ALIF_SE_SERVICES)
   zephyr_include_directories(
     se_services/include
     se_services/zephyr/include
     )
-  zephyr_library()
   zephyr_library_sources(se_services/zephyr/src/se_service.c)
 endif()
 zephyr_include_directories(
