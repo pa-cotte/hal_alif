@@ -21,7 +21,6 @@ LOG_MODULE_REGISTER(se_service, CONFIG_IPM_LOG_LEVEL);
 #define CH_ID           0
 #define SERVICE_TIMEOUT 10
 #define MUTEX_TIMEOUT   100
-extern int errno;
 static K_SEM_DEFINE(svc_send_sem, 0, 1);
 static K_SEM_DEFINE(svc_recv_sem, 0, 1);
 static K_MUTEX_DEFINE(svc_mutex);
