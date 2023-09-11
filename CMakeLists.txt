@@ -7,7 +7,7 @@
 # contact@alifsemi.com, or visit: https://alifsemi.com/license
 
 zephyr_library()
-zephyr_library_sources(common/src/mram_rw.c)
+zephyr_library_sources_ifdef(CONFIG_DT_HAS_ALIF_MRAM_FLASH_CONTROLLER_ENABLED common/src/mram_rw.c)
 
 if(CONFIG_HAS_ALIF_SE_SERVICES)
   zephyr_include_directories(
