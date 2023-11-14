@@ -10,6 +10,7 @@ extern "C" {
 #include <services_lib_ids.h>
 
 int se_service_heartbeat(void);
+int se_service_sync(void);
 int se_service_get_rnd_num(uint8_t *,uint16_t);
 int se_service_get_toc_number(uint32_t *);
 int se_service_get_se_revision(uint8_t *);

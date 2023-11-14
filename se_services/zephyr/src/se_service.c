@@ -19,8 +19,12 @@ LOG_MODULE_REGISTER(se_service, CONFIG_IPM_LOG_LEVEL);
 #define DT_DRV_COMPAT   alif_secure_enclave_services
 
 #define CH_ID           0
-#define SERVICE_TIMEOUT 10
-#define MUTEX_TIMEOUT   100
+#define SERVICE_TIMEOUT 10000
+#define SYNC_TIMEOUT    100
+/* MUTEX_TIMEOUT must be higher than SERVICE_TIMEOUT */
+#define MUTEX_TIMEOUT   15000
+#define MAX_TRIES       100
+
 static K_SEM_DEFINE(svc_send_sem, 0, 1);
 static K_SEM_DEFINE(svc_recv_sem, 0, 1);
 static K_MUTEX_DEFINE(svc_mutex);
@@ -36,7 +40,7 @@ typedef union {
 	get_se_revision_t get_se_revision_svc_d;
 	get_toc_number_svc_t get_toc_number_svc_d;
 	get_device_part_svc_t get_device_part_svc_d;
-	read_otp_data_t read_otp_svc_d;
+	otp_data_t read_otp_svc_d;
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
@@ -99,9 +103,9 @@ static uint32_t global_address;
  * @brief Callback API to make sure MHUv2 messages are received.
  *
  * In send_msg_to_se function, the semaphore svc_recv_sem waits for
- * SERVICE_TIMEOUT to receive MHUv2 data from Secure enclave (SE).
- * During the SERVICE_TIMEOUT wait, the callback_for_receive_msg should
- * release the semaphore indicating that the data sent by SE has been
+ * SYNC_TIMEOUT/SERVICE_TIMEOUT to receive MHUv2 data from Secure enclave (SE).
+ * During the SYNC_TIMEOUT/SERVICE_TIMEOUT wait, the callback_for_receive_msg
+ * should release the semaphore indicating that the data sent by SE has been
  * received otherwise considered as failure to receive data.
  *
  * parameters,
@@ -118,9 +122,9 @@ static void callback_for_receive_msg(const struct device *dev, uint32_t *ptr)
  * @brief Callback API to make sure MHUv2 IPM messages are sent.
  *
  * In send_msg_to_se function, the semaphore svc_send_sem waits for
- * SERVICE_TIMEOUT after sending MHUv2 data to Secure enclave (SE).
- * During the SERVICE_TIMEOUT wait, the callback_for_send_msg should
- * release the semaphore indicating that SE has received the data
+ * SYNC_TIMEOUT/SERVICE_TIMEOUT after sending MHUv2 data to Secure enclave(SE).
+ * During the SYNC_TIMEOUT/SERVICE_TIMEOUT wait, the callback_for_send_msg
+ * should release the semaphore indicating that SE has received the data
  * otherwise data sent is considered as failure.
  *
  * parameters,
@@ -140,7 +144,7 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 
 * The Dcache is flushed from address 'ptr' of size
 * dcache_size before sending data to make sure sent or received data are new.
-* The semphores svc_recv_sem and svc_send_sem are used with SERVICE_TIMEOUT
+* The semphores svc_recv_sem and svc_send_sem are used with timeout
 * to make sure data is received or sent.
 *
 * parameters,
@@ -152,7 +156,8 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 * err    - unable to send data.
 * -ETIME - semphores are timed out.
 */
-static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size)
+static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size,
+			  uint32_t timeout)
 {
 	int err;
 	int service_id = ((service_header_t *)ptr)->hdr_service_id;
@@ -161,20 +166,17 @@ static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size)
 	sys_cache_data_flush_range(ptr, dcache_size);
 
 	err = mhuv2_ipm_send(send_dev, CH_ID, &global_address);
-        if(err)
-        {
-                LOG_ERR("failed to send request for RND (error: %d)\n", err);
-                return err;
+	if (err) {
+		LOG_ERR("failed to send request for MSG(error: %d)\n", err);
+		return err;
         }
 
-	if(k_sem_take(&svc_send_sem, K_MSEC(SERVICE_TIMEOUT)) != 0)
-	{
-		LOG_ERR("service %d response is timed out!\n", service_id);
+	if (k_sem_take(&svc_send_sem, K_MSEC(timeout)) != 0) {
+		LOG_ERR("service %d send is timed out!\n", service_id);
 		k_sem_reset(&svc_send_sem);
 		return -ETIME;
 	}
-	if(k_sem_take(&svc_recv_sem, K_MSEC(SERVICE_TIMEOUT)) != 0)
-	{
+	if (k_sem_take(&svc_recv_sem, K_MSEC(timeout)) != 0) {
 		LOG_ERR("service %d response is timed out!\n", service_id);
 		k_sem_reset(&svc_recv_sem);
 		return -ETIME;
@@ -183,6 +185,44 @@ static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size)
 	sys_cache_data_invd_range(ptr, dcache_size);
 	return 0;
 }
+/**
+ * @brief Synchronize with SE or wait until SE wakes up by sending
+ * multiple SE heartbeat service requests.
+ *
+ * returns,
+ * 0     - On success. SE is woken up to service SE service requests.
+ * errno - Unable to get an valid response from SE.
+ */
+int se_service_sync(void)
+{
+	int err, i = 0;
+
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.service_header.hdr_service_id =
+					SERVICE_MAINTENANCE_HEARTBEAT_ID;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	while (i < MAX_TRIES) {
+		err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.service_header,
+			sizeof(se_service_all_svc_d.service_header),
+			SYNC_TIMEOUT);
+		if (!err)
+			break;
+		/* SE service timed out. Increment count */
+		++i;
+	}
+	k_mutex_unlock(&svc_mutex);
+	if (i >= MAX_TRIES) {
+		LOG_ERR("Failed to synchronize with SE (errno =%d)\n", err);
+		return err;
+	}
+	return 0;
+}
+
 
 /**
 * @brief Send heartbeat service request to SE to check if SE is alive.
@@ -208,8 +248,10 @@ int se_service_heartbeat(void)
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
 	se_service_all_svc_d.service_header.hdr_service_id =
 					SERVICE_MAINTENANCE_HEARTBEAT_ID;
-	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.service_header,
-			       sizeof(se_service_all_svc_d.service_header));
+	err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.service_header,
+			sizeof(se_service_all_svc_d.service_header),
+			SYNC_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
@@ -239,14 +281,16 @@ int se_service_heartbeat(void)
 int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 {
 	int err;
-	if(!buffer)
-	{
+	if (!buffer) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
@@ -255,11 +299,12 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 					SERVICE_CRYPTOCELL_GET_RND;
 	se_service_all_svc_d.get_rnd_svc_d.send_rnd_length = length;
 
-	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_rnd_svc_d,
-			       sizeof(se_service_all_svc_d.get_rnd_svc_d));
+	err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.get_rnd_svc_d,
+			sizeof(se_service_all_svc_d.get_rnd_svc_d),
+			SERVICE_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
-	if (err)
-	{
+	if (err) {
 		LOG_ERR("service_get_rnd_num failed with %d\n", err);
 		return err;
 	}
@@ -288,14 +333,16 @@ int se_service_get_toc_number(uint32_t *ptoc)
 {
 	int err;
 
-	if(!ptoc)
-	{
+	if (!ptoc) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
@@ -305,10 +352,10 @@ int se_service_get_toc_number(uint32_t *ptoc)
 
 	err = send_msg_to_se((uint32_t *)
 		&se_service_all_svc_d.get_toc_number_svc_d,
-		sizeof(se_service_all_svc_d.get_toc_number_svc_d));
+		sizeof(se_service_all_svc_d.get_toc_number_svc_d),
+		SERVICE_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
-	if (err)
-	{
+	if (err) {
 		LOG_ERR("service_get_toc_number failed with %d\n", err);
 		return err;
 	}
@@ -338,14 +385,16 @@ int se_service_get_se_revision(uint8_t *prev)
 {
 	int err;
 
-	if(!prev)
-	{
+	if (!prev) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
@@ -354,11 +403,11 @@ int se_service_get_se_revision(uint8_t *prev)
 					SERVICE_APPLICATION_FIRMWARE_VERSION_ID;
 
 	err = send_msg_to_se((uint32_t *)
-			&se_service_all_svc_d.get_se_revision_svc_d,
-			sizeof(se_service_all_svc_d.get_se_revision_svc_d));
+		&se_service_all_svc_d.get_se_revision_svc_d,
+		sizeof(se_service_all_svc_d.get_se_revision_svc_d),
+		SERVICE_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
-	if (err)
-	{
+	if (err) {
 		LOG_ERR("service_get_toc_number failed with %d\n", err);
 		return err;
 	}
@@ -388,14 +437,16 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 {
 	int err;
 
-	if(!pdev_part)
-	{
+	if (!pdev_part) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
@@ -405,10 +456,10 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 
 	err = send_msg_to_se((uint32_t *)
 		&se_service_all_svc_d.get_device_part_svc_d,
-		sizeof(se_service_all_svc_d.get_device_part_svc_d));
+		sizeof(se_service_all_svc_d.get_device_part_svc_d),
+		SERVICE_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
-	if (err)
-	{
+	if (err) {
 		LOG_ERR("service_get_toc_number failed with %d\n", err);
 		return err;
 	}
@@ -439,14 +490,16 @@ int se_service_read_otp(uint32_t *potp_data)
 	int err;
 	int otp_row;
 
-	if(!potp_data)
-	{
+	if (!potp_data) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
@@ -460,8 +513,9 @@ int se_service_read_otp(uint32_t *potp_data)
 	{
 		se_service_all_svc_d.read_otp_svc_d.send_offset = otp_row;
 		err = send_msg_to_se((uint32_t *)
-				&se_service_all_svc_d.read_otp_svc_d,
-				sizeof(se_service_all_svc_d.read_otp_svc_d));
+			&se_service_all_svc_d.read_otp_svc_d,
+			sizeof(se_service_all_svc_d.read_otp_svc_d),
+			SERVICE_TIMEOUT);
 		if (err)
 		{
 			k_mutex_unlock(&svc_mutex);
@@ -469,7 +523,7 @@ int se_service_read_otp(uint32_t *potp_data)
 				err);
 			return err;
 		}
-		*potp_data = se_service_all_svc_d.read_otp_svc_d.resp_otp_word;
+		*potp_data = se_service_all_svc_d.read_otp_svc_d.otp_word;
 	}
 	k_mutex_unlock(&svc_mutex);
 	return 0;
