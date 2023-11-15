@@ -28,7 +28,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdbool.h>
 #include "services_lib_protocol.h"
-//#include "aipm.h"
+#include "aipm.h"
 
 /*******************************************************************************
  *  M A C R O   D E F I N E S
