@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: Apache-2.0 */
 /**
  * @file services_lib_ids.h
  *
