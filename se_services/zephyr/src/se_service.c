@@ -255,7 +255,7 @@ int se_service_heartbeat(void)
 	k_mutex_unlock(&svc_mutex);
 	if (err)
 	{
-		LOG_ERR("service_get_heartbeat failed with %d\n", err);
+		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
 	}
 	return 0;
@@ -274,13 +274,14 @@ int se_service_heartbeat(void)
 * @length - length of requested random number.
 *
 * returns,
-* 0      - success, buffer contains random numbers of length 'length'.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
+* 0        - success, buffer contains random numbers of length 'length'.
+* err      - if unable to send service request.
+* errno    - unable to unlock mutex.
+* resp_err - error in service response for the requested service.
 */
 int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 {
-	int err;
+	int err, resp_err = -1;
 	if (!buffer) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
@@ -303,10 +304,16 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 			&se_service_all_svc_d.get_rnd_svc_d,
 			sizeof(se_service_all_svc_d.get_rnd_svc_d),
 			SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_rnd_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
-		LOG_ERR("service_get_rnd_num failed with %d\n", err);
+		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n",
+			__func__, resp_err);
+		return resp_err;
 	}
 	memcpy(buffer, (uint8_t *)se_service_all_svc_d.get_rnd_svc_d.resp_rnd,
 	       length);
@@ -325,13 +332,14 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 * @ptoc - placeholder for TOC number.
 *
 * returns,
-* 0      - success, ptoc contains number of TOC.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
+* 0        - success, ptoc contains number of TOC.
+* err      - if unable to send service request.
+* errno    - unable to unlock mutex.
+* resp_err - error in service response for the requested service.
 */
 int se_service_get_toc_number(uint32_t *ptoc)
 {
-	int err;
+	int err, resp_err = -1;
 
 	if (!ptoc) {
 		LOG_ERR("Invalid argument\n");
@@ -354,10 +362,16 @@ int se_service_get_toc_number(uint32_t *ptoc)
 		&se_service_all_svc_d.get_toc_number_svc_d,
 		sizeof(se_service_all_svc_d.get_toc_number_svc_d),
 		SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_toc_number_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
-		LOG_ERR("service_get_toc_number failed with %d\n", err);
+		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n",
+			__func__, resp_err);
+		return resp_err;
 	}
 
 	*ptoc = se_service_all_svc_d.get_toc_number_svc_d.resp_number_of_toc;
@@ -377,13 +391,14 @@ int se_service_get_toc_number(uint32_t *ptoc)
 *        characters.
 *
 * returns,
-* 0      - success, prev contains SE firmware string.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
+* 0        - success, prev contains SE firmware string.
+* err      - if unable to send service request.
+* errno    - unable to unlock mutex.
+* resp_err - error in service response for the requested service.
 */
 int se_service_get_se_revision(uint8_t *prev)
 {
-	int err;
+	int err, resp_err = -1;
 
 	if (!prev) {
 		LOG_ERR("Invalid argument\n");
@@ -406,10 +421,16 @@ int se_service_get_se_revision(uint8_t *prev)
 		&se_service_all_svc_d.get_se_revision_svc_d,
 		sizeof(se_service_all_svc_d.get_se_revision_svc_d),
 		SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_se_revision_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
-		LOG_ERR("service_get_toc_number failed with %d\n", err);
+		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n",
+			__func__, resp_err);
+		return resp_err;
 	}
 	memcpy(prev, (uint8_t *)
 	se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision,
@@ -429,13 +450,14 @@ int se_service_get_se_revision(uint8_t *prev)
 * @pdev_part - placeholder for device part number.
 *
 * returns,
-* 0      - success, pdev_part contains device part number.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
+* 0        - success, pdev_part contains device part number.
+* err      - if unable to send service request.
+* errno    - unable to unlock mutex.
+* resp_err - error in service response for the requested service.
 */
 int se_service_get_device_part_number(uint32_t *pdev_part)
 {
-	int err;
+	int err, resp_err = -1;
 
 	if (!pdev_part) {
 		LOG_ERR("Invalid argument\n");
@@ -458,10 +480,16 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 		&se_service_all_svc_d.get_device_part_svc_d,
 		sizeof(se_service_all_svc_d.get_device_part_svc_d),
 		SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_device_part_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
-		LOG_ERR("service_get_toc_number failed with %d\n", err);
+		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n",
+			__func__, resp_err);
+		return resp_err;
 	}
 	*pdev_part =
 		se_service_all_svc_d.get_device_part_svc_d.resp_device_string;
@@ -481,13 +509,14 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 * @potp_data - placeholder for an unique serial number.
 *
 * returns,
-* 0      - success, potp_data contains 8 bytes unique serial number.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
+* 0        - success, potp_data contains 8 bytes unique serial number.
+* err      - if unable to send service request.
+* errno    - unable to unlock mutex.
+* resp_err - Error in service response for the requested service.
 */
 int se_service_read_otp(uint32_t *potp_data)
 {
-	int err;
+	int err, resp_err = -1;
 	int otp_row;
 
 	if (!potp_data) {
@@ -516,12 +545,18 @@ int se_service_read_otp(uint32_t *potp_data)
 			&se_service_all_svc_d.read_otp_svc_d,
 			sizeof(se_service_all_svc_d.read_otp_svc_d),
 			SERVICE_TIMEOUT);
+		resp_err = se_service_all_svc_d.read_otp_svc_d.resp_error_code;
 		if (err)
 		{
 			k_mutex_unlock(&svc_mutex);
-			LOG_ERR("service_get_toc_number failed with %d\n",
-				err);
+			LOG_ERR("%s failed with %d\n", __func__, err);
 			return err;
+		}
+		if (resp_err) {
+			k_mutex_unlock(&svc_mutex);
+			LOG_ERR("%s: received response error = %d\n",
+				__func__, resp_err);
+			return resp_err;
 		}
 		*potp_data = se_service_all_svc_d.read_otp_svc_d.otp_word;
 	}
