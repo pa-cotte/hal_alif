@@ -41,6 +41,7 @@ typedef union {
 	get_toc_number_svc_t get_toc_number_svc_d;
 	get_device_part_svc_t get_device_part_svc_d;
 	otp_data_t read_otp_svc_d;
+	get_device_revision_data_t get_device_revision_data_d;
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
@@ -563,7 +564,94 @@ int se_service_read_otp(uint32_t *potp_data)
 	k_mutex_unlock(&svc_mutex);
 	return 0;
 }
+/**
+ * @brief Send service request to SE to get device data
+ *
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_DEVICE_REVISION_DATA in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @pdev_data - placeholder for device data.
+ *
+ * returns,
+ * 0        - success, pdev_data contains device data containing
+ *            SoC revision, SoC part number, various keys,
+ *            firmware version, wounding data, DCU settings,
+ *            manufacturing data, serial number, SoC lifecycle state.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - Error in service response for the requested service.
+ */
+int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
+{
+	int err, resp_err = -1;
 
+	if (!pdev_data) {
+		LOG_ERR("Invalid argument\n");
+		return -EINVAL;
+	}
+
+	if (se_service_sync()) {
+		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
+		return errno;
+	}
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_device_revision_data_d.header.hdr_service_id
+			= SERVICE_SYSTEM_MGMT_GET_DEVICE_REVISION_DATA;
+
+	err = send_msg_to_se((uint32_t *)
+		&se_service_all_svc_d.get_device_revision_data_d,
+		sizeof(se_service_all_svc_d.get_device_revision_data_d),
+		SERVICE_TIMEOUT);
+	resp_err =
+	se_service_all_svc_d.get_device_revision_data_d.resp_error_code;
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n",
+			__func__, resp_err);
+		return resp_err;
+	}
+	pdev_data->revision_id =
+		se_service_all_svc_d.get_device_revision_data_d.revision_id;
+	memcpy((uint8_t *)pdev_data->SerialN,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.SerialN,
+	sizeof(pdev_data->SerialN));
+	memcpy((uint8_t *)pdev_data->ALIF_PN,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.ALIF_PN,
+	sizeof(pdev_data->ALIF_PN));
+	memcpy((uint8_t *)pdev_data->HBK0,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK0,
+	sizeof(pdev_data->HBK0));
+	memcpy((uint8_t *)pdev_data->DCU,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.DCU,
+	sizeof(pdev_data->DCU));
+	memcpy((uint8_t *)pdev_data->config,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.config,
+	sizeof(pdev_data->config));
+	memcpy((uint8_t *)pdev_data->HBK1,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK1,
+	sizeof(pdev_data->HBK1));
+	memcpy((uint8_t *)pdev_data->HBK_FW,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK_FW,
+	sizeof(pdev_data->HBK_FW));
+	memcpy((uint8_t *)pdev_data->MfgData,
+	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.MfgData,
+	sizeof(pdev_data->MfgData));
+
+	pdev_data->LCS = se_service_all_svc_d.get_device_revision_data_d.LCS;
+
+	k_mutex_unlock(&svc_mutex);
+	return 0;
+}
 /**
 * @brief Check the MHUv2 devices are ready and initialize callbacks for
 * the recevied and send data.

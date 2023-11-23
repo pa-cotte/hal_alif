@@ -15,6 +15,8 @@ int se_service_get_rnd_num(uint8_t *,uint16_t);
 int se_service_get_toc_number(uint32_t *);
 int se_service_get_se_revision(uint8_t *);
 int se_service_get_device_part_number(uint32_t *);
+int se_service_system_get_device_data(get_device_revision_data_t *pdev_data);
+
 
 #ifdef __cplusplus
 }
