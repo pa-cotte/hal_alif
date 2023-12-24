@@ -222,14 +222,14 @@ typedef enum {
  *  @struct SERVICES_toc_info_t
  */
 typedef struct {
-uint8_t   image_identifier[TOC_NAME_LENGTH]; /**< TOC name      */
-uint32_t  version;                  /**< TOC Version      */
-uint32_t  cpu;                      /**< TOC Cpu ID       */
-uint32_t  store_address;            /**< TOC MRAM address */
-uint32_t  load_address;             /**< TOC load         */
-uint32_t  boot_address;             /**< TOC boot address */
-uint32_t  image_size;               /**< TOC image size   */
-uint32_t  flags;                    /**< TOC flag state   */
+	uint8_t   image_identifier[TOC_NAME_LENGTH]; /**< TOC name      */
+	uint32_t  version;                  /**< TOC Version      */
+	uint32_t  cpu;                      /**< TOC Cpu ID       */
+	uint32_t  store_address;            /**< TOC MRAM address */
+	uint32_t  load_address;             /**< TOC load         */
+	uint32_t  boot_address;             /**< TOC boot address */
+	uint32_t  image_size;               /**< TOC image size   */
+	uint32_t  flags;                    /**< TOC flag state   */
 } SERVICES_toc_info_t;
 
 /**
@@ -237,34 +237,34 @@ uint32_t  flags;                    /**< TOC flag state   */
  * @brief  user facing device details, including internal OTP
  */
 typedef struct {
-uint32_t revision_id; /**< SoC revision          */
-uint8_t version[4];   /**< @todo deprecate       */
-uint8_t ALIF_PN[16];  /**< SoC part number       */
-uint8_t HBK0[16];     /**< ALIF Key              */
-uint8_t HBK1[16];     /**< ALIF Key              */
-uint8_t HBK_FW[20];   /**< ALIF Firmware version */
-uint8_t config[4];    /**< Wounding data         */
-uint8_t DCU[16];      /**< DCU settings          */
-uint8_t MfgData[32];  /**< Manufacturing data    */
-uint8_t SerialN[8];   /**< SoC Serial number     */
-uint8_t LCS;          /**< SoC lifecycle state   */
+	uint32_t revision_id; /**< SoC revision          */
+	uint8_t version[4];   /**< @todo deprecate       */
+	uint8_t ALIF_PN[16];  /**< SoC part number       */
+	uint8_t HBK0[16];     /**< ALIF Key              */
+	uint8_t HBK1[16];     /**< ALIF Key              */
+	uint8_t HBK_FW[20];   /**< ALIF Firmware version */
+	uint8_t config[4];    /**< Wounding data         */
+	uint8_t DCU[16];      /**< DCU settings          */
+	uint8_t MfgData[32];  /**< Manufacturing data    */
+	uint8_t SerialN[8];   /**< SoC Serial number     */
+	uint8_t LCS;          /**< SoC lifecycle state   */
 } SERVICES_version_data_t;
 
 /**
  * @struct SERVICES_toc_data_t
  */
 typedef struct {
-uint32_t number_of_toc_entries;     /**< Number of real TOC objects */
-SERVICES_toc_info_t toc_entry[SERVICES_NUMBER_OF_TOC_ENTRIES]; /* TOC details */
+	uint32_t number_of_toc_entries;     /**< Number of real TOC objects */
+	SERVICES_toc_info_t toc_entry[SERVICES_NUMBER_OF_TOC_ENTRIES]; /* TOC details */
 } SERVICES_toc_data_t;
 
 /**
  * @struct Power profiles
  */
 typedef enum {
-OFF_PROFILE = 0,               /**< OFF_PROFILE           */
-RUN_PROFILE,                   /**< HIGH_PERFORMANCE_POWER_PROFILE */
-NUMBER_OF_POWER_PROFILES       /**< NUMBER_OF_POWER_PROFILES       */
+	OFF_PROFILE = 0,               /**< OFF_PROFILE           */
+	RUN_PROFILE,                   /**< HIGH_PERFORMANCE_POWER_PROFILE */
+	NUMBER_OF_POWER_PROFILES       /**< NUMBER_OF_POWER_PROFILES       */
 } services_power_profile_t;
 
 /**
@@ -330,6 +330,14 @@ typedef enum {
 	DIVIDER_HCLK,
 	DIVIDER_PCLK
 } clock_divider_t;
+
+typedef struct {
+	uint32_t nvds_src_addr;
+	uint32_t nvds_dst_addr;
+	uint32_t nvds_copy_len;
+	uint32_t trng_dst_addr;
+	uint32_t trng_len;
+} net_proc_boot_args_t;
 
 /*******************************************************************************
  *  G L O B A L   D E F I N E S
@@ -518,6 +526,11 @@ uint32_t SERVICES_system_write_otp(uint32_t services_handle,
 				   uint32_t otp_value_word,
 				   uint32_t *error_code);
 
+uint32_t SERVICES_system_get_eui_extension(uint32_t services_handle,
+					bool is_eui48,
+					uint8_t *eui_extension,
+					uint32_t *error_code);
+
 uint32_t SERVICES_boot_process_toc_entry(uint32_t services_handle,
 					 const uint8_t *image_id,
 					 uint32_t *error_code);
@@ -619,6 +632,13 @@ uint32_t SERVICES_clocks_set_divider(uint32_t services_handle,
 				     uint32_t value,
 				     uint32_t *error_code);
 
+uint32_t SERVICES_clocks_get_apb_frequency(uint32_t services_handle,
+					uint32_t *frequency,
+					uint32_t *error_code);
+uint32_t SERVICES_clocks_get_refclk_frequency(uint32_t services_handle,
+					uint32_t *frequency,
+					uint32_t *error_code);
+
 uint32_t SERVICES_pll_initialize(uint32_t services_handle,
 				 uint32_t *error_code);
 uint32_t SERVICES_pll_deinit(uint32_t services_handle,
@@ -646,8 +666,15 @@ uint32_t SERVICES_pll_clkpll_stop(uint32_t services_handle,
 				  uint32_t *error_code);
 
 uint32_t SERVICES_pll_clkpll_is_locked(uint32_t services_handle,
-				       bool *is_locked,
-				       uint32_t *error_code);
+				bool *is_locked,
+				uint32_t *error_code);
+
+uint32_t SERVICES_Boot_Net_Proc(uint32_t services_handle,
+				net_proc_boot_args_t *boot_args,
+				uint32_t *error_code);
+uint32_t SERVICES_Shutdown_Net_Proc(uint32_t services_handle,
+				uint32_t *error_code);
+
 #ifdef __cplusplus
 }
 #endif

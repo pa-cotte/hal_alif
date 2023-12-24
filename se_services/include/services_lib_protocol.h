@@ -30,6 +30,7 @@ extern "C" {
  ******************************************************************************/
 /**
  * Version   JIRA         Description
+ * 0.0.43                 CMSIS V1.0.0
  * 0.0.42   SE-2176       Reduce the size of the packet buffer in the services
  *                        examples
  * 0.0.41
@@ -86,7 +87,7 @@ extern "C" {
  * 0.0.2    SE-708        First re-factoring
  * 0.0.1                  First implementation
  */
-#define SE_SERVICES_VERSION_STRING                 "0.0.42"
+#define SE_SERVICES_VERSION_STRING                 "0.0.43"
 
 #define IMAGE_NAME_LENGTH                          8
 #define VERSION_RESPONSE_LENGTH                    80
@@ -205,6 +206,22 @@ typedef struct {
 	volatile uint32_t resp_vtor_address_ns;
 	volatile int      resp_error_code;
 } aipm_get_off_profile_svc_t;
+
+// Extsys0 services
+typedef struct {
+  service_header_t header;
+  volatile uint32_t send_nvds_src_addr;
+  volatile uint32_t send_nvds_dst_addr;
+  volatile uint32_t send_nvds_copy_len;
+  volatile uint32_t send_trng_dst_addr;
+  volatile uint32_t send_trng_len;
+  volatile int      resp_error_code;
+} net_proc_boot_svc_t;
+
+typedef struct {
+  service_header_t header;
+  volatile int     resp_error_code;
+} net_proc_shutdown_svc_t;
 
 // Crypto Services
 
@@ -763,6 +780,22 @@ typedef struct {
 	uint32_t send_value;
 	uint32_t resp_error_code;
 } clk_set_clk_divider_svc_t;
+
+// struct for returning clock registers
+typedef struct {
+  service_header_t header;
+  volatile uint32_t cgu_osc_ctrl;
+  volatile uint32_t cgu_pll_sel;
+  volatile uint32_t cgu_clk_ena;
+  volatile uint32_t cgu_escclk_sel;
+  volatile uint32_t systop_clk_div;
+  volatile uint32_t hostcpuclk_ctrl;
+  volatile uint32_t hostcpuclk_div0;
+  volatile uint32_t hostcpuclk_div1;
+  volatile uint32_t aclk_ctrl;
+  volatile uint32_t aclk_div0;
+  volatile uint32_t resp_error_code;
+} clk_get_clocks_svc_t;
 
 // struct for starting the external HF crystall
 typedef struct {

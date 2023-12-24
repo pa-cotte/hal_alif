@@ -48,10 +48,10 @@ typedef enum  {
 
 /* Power Domain Aliases */
 #define PD_VBAT_AON      PD0    // bit0
-#define PD_MODEM_AON     PD1    // bit1
+#define PD_SRAM_CTRL_AON PD1    // bit1
 #define PD_SSE700_AON    PD2    // bit2
 #define PD_RTSS_HE       PD3    // bit3
-#define PD_MPSS          PD4    // bit4
+#define PD_SRAMS         PD4    // bit4
 #define PD_SESS          PD5    // bit5
 #define PD_SYST          PD6    // bit6
 #define PD_RTSS_HP       PD7    // bit7
@@ -60,10 +60,10 @@ typedef enum  {
 
 /* Power Domain Aliases Bit mask */
 #define PD_VBAT_AON_MASK      PD0_MASK    // bit0
-#define PD_MODEM_AON_MASK     PD1_MASK    // bit1
+#define PD_SRAM_CTRL_AON_MASK PD1_MASK    // bit1
 #define PD_SSE700_AON_MASK    PD2_MASK    // bit2
 #define PD_RTSS_HE_MASK       PD3_MASK    // bit3
-#define PD_MPSS_MASK          PD4_MASK    // bit4
+#define PD_SRAMS_MASK         PD4_MASK    // bit4
 #define PD_SESS_MASK          PD5_MASK    // bit5
 #define PD_SYST_MASK          PD6_MASK    // bit6
 #define PD_RTSS_HP_MASK       PD7_MASK    // bit7
@@ -166,8 +166,7 @@ typedef enum {
 	MB_OSPI1,
 	MB_SERAM,
 	MB_FWRAM,
-	MB_BACKUP4K,
-	MB_BACKUP16K
+	MB_BACKUP4K
 } memory_block_t;
 
 /* Memory block bit mask */
@@ -192,10 +191,8 @@ typedef enum {
 #define SERAM_MASK      (1 << MB_SERAM)          // bit18
 #define FWRAM_MASK      (1 << MB_FWRAM)          // bit19
 #define BACKUP4K_MASK   (1 << MB_BACKUP4K)       // bit20
-#define BACKUP16K_MASK  (1 << MB_BACKUP16K)      // bit21
 
 /* PD0 Wakeup events */
-#define WE_MDM      (1 << 0)     // bit0
 #define WE_SERTC    (1 << 4)     // bit4
 #define WE_LPRTC    (1 << 5)     // bit5
 #define WE_LPCMP    (1 << 6)     // bit6
@@ -218,10 +215,6 @@ typedef enum {
 
 // EWIC
 #define EWIC_RTC_SE                  0x1         // bit0
-#define EWIC_MODEM                   0x2         // bit1
-#define EWIC_MODEM_TO_SE_IRQ         0xC         // bit3:2
-#define EWIC_MODEM_PPU_IRQ           0x10        // bit4
-#define EWIC_MODEM_WARM_RESET_REQ    0x20        // bit5
 #define EWIC_RTC_A                   0x40        // bit6
 #define EWIC_VBAT_TIMER              0x780       // bit10:7
 #define EWIC_VBAT_GPIO               0x7F800     // bit18:11
@@ -267,7 +260,6 @@ typedef enum {
 
 #define NPU_HP_MASK       (1 << NPU_HP)   // bit0
 #define NPU_HE_MASK       (1 << NPU_HE)   // bit1
-#define ISIM_MASK         (1 << ISIM)     // bit2
 #define OSPI_1_MASK       (1 << OSPI_1)   // bit3
 #define CANFD_MASK        (1 << CANFD)    // bit4
 #define SDC_MASK          (1 << SDC)      // bit5

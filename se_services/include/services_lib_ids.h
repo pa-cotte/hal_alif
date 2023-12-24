@@ -127,6 +127,7 @@ enum SERVICE_ID_t {
 	SERVICE_BOOT_RESET_CPU,                                             /**< SERVICE_BOOT_RESET_CPU                     */
 	SERVICE_BOOT_RESET_SOC,                                             /**< SERVICE_BOOT_RESET_SOC                     */
 	SERVICE_BOOT_SET_VTOR,                                              /**< SERVICE_BOOT_SET_VTOR                      */
+	SERVICE_BOOT_SET_ARGS,                                              /**< SERVICE_BOOT_SET_ARGS                      */
 	SERVICE_BOOT_END           = 599,                                   /**< SERVICE_BOOT_END                           */
 
   /**
@@ -155,7 +156,17 @@ enum SERVICE_ID_t {
 	SERVICE_PLL_CLKPLL_START,
 	SERVICE_PLL_CLKPLL_STOP,
 	SERVICE_PLL_CLKPLL_IS_LOCKED,
-	SERVICE_CLOCK_END = 799                                              /**< SERVICE_CLOCK_END                       */
+  SERVICE_CLOCK_GET_CLOCKS,
+	SERVICE_CLOCK_END = 799,                                             /**< SERVICE_CLOCK_END                       */
+
+  /**
+   * ExtSys0 Services
+   */
+  SERVICE_EXTSYS0_START        = 800,                                  /**< SERVICE_EXTSYS0_START                    */
+  SERVICE_EXTSYS0_BOOT_SET_ARGS = SERVICE_EXTSYS0_START,
+  SERVICE_EXTSYS0_SHUTDOWN,
+  SERVICE_EXTSYS0_END          = 899                                   /**< SERVICE_EXTSYS0_END                      */
+
 };
 
 #endif /* __SERVICES_LIB_IDS_H__ */
