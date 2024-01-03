@@ -610,12 +610,13 @@ int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
 		SERVICE_TIMEOUT);
 	resp_err =
 	se_service_all_svc_d.get_device_revision_data_d.resp_error_code;
-	k_mutex_unlock(&svc_mutex);
 	if (err) {
+		k_mutex_unlock(&svc_mutex);
 		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
 	}
 	if (resp_err) {
+		k_mutex_unlock(&svc_mutex);
 		LOG_ERR("%s: received response error = %d\n",
 			__func__, resp_err);
 		return resp_err;
