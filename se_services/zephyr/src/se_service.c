@@ -33,6 +33,32 @@ static K_MUTEX_DEFINE(svc_mutex);
 const struct device *send_dev;
 const struct device *recv_dev;
 
+/* Manufacturing data for older Ensemble Family revision <= REV_B2 */
+typedef struct {
+	uint8_t x_loc: 7;
+	uint8_t y_loc: 7;
+	uint8_t wfr_id: 5;
+	uint8_t year: 6;
+	uint8_t fab_id: 1;
+	uint8_t week: 6;
+	uint8_t lot_no: 8;
+} mfg_data_v1_t;
+
+/* Manufacturing data for Ensemble Family revision >= REV_B3 */
+typedef struct {
+	uint8_t x_loc: 7;
+	uint8_t zero_1: 1;
+	uint8_t y_loc: 7;
+	uint8_t zero_2: 1;
+	uint8_t wfr_id: 5;
+	uint8_t zero_3: 2;
+	uint8_t fab_id: 1;
+	uint8_t year: 6;
+	uint8_t zero_4: 2;
+	uint8_t week: 6;
+	uint8_t zero_5: 2;
+	uint8_t lot_no: 8;
+} mfg_data_v2_t;
 
 typedef union {
 	service_header_t service_header;
@@ -653,6 +679,115 @@ int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
 	k_mutex_unlock(&svc_mutex);
 	return 0;
 }
+
+/**
+ * @brief   Pack manufacturing data into 40 bits for EUI-64
+ */
+static void get_eui64_extension(mfg_data_v1_t *p_mfg_data, uint8_t *p_data_out)
+{
+	uint8_t seven_bits_1 = p_mfg_data->x_loc;
+	uint8_t seven_bits_2 = p_mfg_data->y_loc;
+	uint8_t six_bits_3 = (p_mfg_data->wfr_id << 1) | p_mfg_data->fab_id;
+	uint8_t six_bits_4 = p_mfg_data->year;
+	uint8_t six_bits_5 = p_mfg_data->week;
+	uint8_t eight_bits = p_mfg_data->lot_no;
+
+	/* x x x x x x x y */
+	*p_data_out = (seven_bits_1 << 1) | ((seven_bits_2 & 0x40) >> 6);
+	p_data_out++;
+	/* y y y y y y wf wf */
+	*p_data_out = ((seven_bits_2 & 0x3F) << 2) | ((six_bits_3 & 0x30) >> 4);
+	p_data_out++;
+	/* wf wf wf f yr yr yr yr */
+	*p_data_out = ((six_bits_3 & 0x0F) << 4) | ((six_bits_4 & 0x3C) >> 2);
+	p_data_out++;
+	/* yr yr wk wk wk wk wk wk */
+	*p_data_out = ((six_bits_4 & 0x03) << 6) | six_bits_5;
+	p_data_out++;
+	*p_data_out = eight_bits;
+}
+
+/**
+ * @brief   Pack manufacturing data into 24 bits for EUI-48
+ */
+static void get_eui48_extension(mfg_data_v1_t *p_mfg_data, uint8_t *p_data_out)
+{
+	uint8_t six_bits_1 = p_mfg_data->x_loc & 0x3F;
+	uint8_t six_bits_2 = p_mfg_data->y_loc & 0x3F;
+	uint8_t six_bits_3 = (p_mfg_data->wfr_id << 1) | (p_mfg_data->lot_no & 0x1);
+	uint8_t six_bits_4 = p_mfg_data->week;
+
+	/* x x x x x x y y */
+	*p_data_out = (six_bits_1 << 2) | ((six_bits_2 & 0x30) >> 4);
+	p_data_out++;
+	/* y y y y wf wf wf wf */
+	*p_data_out = ((six_bits_2 & 0x0F) << 4) | ((six_bits_3 & 0x3C) >> 2);
+	p_data_out++;
+	/* wf lt wk wk wk wk wk wk */
+	*p_data_out = ((six_bits_3 & 0x03) << 6) | six_bits_4;
+}
+
+static void se_service_manufacture_data_parse(get_device_revision_data_t *device_data,
+					      mfg_data_v1_t *mfg_data)
+{
+	if (IS_ENABLED(CONFIG_SOC_FAMILY_ENSEMBLE) && device_data->revision_id < 0x0000b300) {
+		mfg_data_v1_t *p_mfg_data = (mfg_data_v1_t *)device_data->MfgData;
+
+		mfg_data->fab_id = p_mfg_data->fab_id;
+		mfg_data->lot_no = p_mfg_data->lot_no;
+		mfg_data->week = p_mfg_data->week;
+		mfg_data->wfr_id = p_mfg_data->wfr_id;
+		mfg_data->x_loc = p_mfg_data->x_loc;
+		mfg_data->y_loc = p_mfg_data->y_loc;
+		mfg_data->year = p_mfg_data->year;
+	} else {
+		/* Ensemble(rev>=B3) families use new Manufacture data model */
+		mfg_data_v2_t *p_mfg_data = (mfg_data_v2_t *)device_data->MfgData;
+
+		mfg_data->fab_id = p_mfg_data->fab_id;
+		mfg_data->lot_no = p_mfg_data->lot_no;
+		mfg_data->week = p_mfg_data->week;
+		mfg_data->wfr_id = p_mfg_data->wfr_id;
+		mfg_data->x_loc = p_mfg_data->x_loc;
+		mfg_data->y_loc = p_mfg_data->y_loc;
+		mfg_data->year = p_mfg_data->year;
+	}
+}
+
+/**
+ * @brief Calculate unique extension values for EUI-48 or EUI-64
+ *
+ * @fn    uint32_t se_system_get_eui_extension(
+ *                                bool is_eui48,
+ *                                uint8_t * eui_extension)
+ *
+ * @param is_eui48       Specify whether EUI-48 or EUI-64 extension is requested
+ * @param eui_extension  Buffer to store the calculated extension
+ * @return
+ */
+int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension)
+{
+	get_device_revision_data_t device_data;
+	mfg_data_v1_t p_mfg_dat;
+	int ret;
+
+	ret = se_service_system_get_device_data(&device_data);
+	if (ret) {
+		return ret;
+	}
+
+	se_service_manufacture_data_parse(&device_data, &p_mfg_dat);
+
+	/* Use Manufactured data  */
+	if (is_eui48) {
+		get_eui48_extension(&p_mfg_dat, eui_extension);
+	} else {
+		get_eui64_extension(&p_mfg_dat, eui_extension);
+	}
+
+	return ret;
+}
+
 /**
 * @brief Check the MHUv2 devices are ready and initialize callbacks for
 * the recevied and send data.
