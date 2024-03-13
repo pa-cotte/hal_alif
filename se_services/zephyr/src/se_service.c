@@ -1,11 +1,6 @@
-/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
- * Use, distribution and modification of this code is permitted under the
- * terms stated in the Alif Semiconductor Software License Agreement
+/* Copyright (C) 2024  Alif Semiconductor
  *
- * You should have received a copy of the Alif Semiconductor Software
- * License Agreement with this file. If not, please write to:
- * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 #include <zephyr/kernel.h>
 #include <zephyr/cache.h>
@@ -314,10 +309,6 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
@@ -373,10 +364,6 @@ int se_service_get_toc_number(uint32_t *ptoc)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
@@ -432,10 +419,6 @@ int se_service_get_se_revision(uint8_t *prev)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
@@ -491,10 +474,6 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
@@ -551,10 +530,6 @@ int se_service_read_otp(uint32_t *potp_data)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
@@ -618,10 +593,6 @@ int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
 		return -EINVAL;
 	}
 
-	if (se_service_sync()) {
-		LOG_ERR("SE synchronization failed (errno =%d)\n", errno);
-		return errno;
-	}
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
