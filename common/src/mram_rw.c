@@ -9,7 +9,7 @@
  */
 #include <stdint.h>
 #include <string.h>
-#include <zephyr/arch/arm/aarch32/cortex_m/cmsis.h>
+#include <cmsis_core.h>
 #include <errno.h>
 #include <zephyr/cache.h>
 #include <zephyr/logging/log.h>

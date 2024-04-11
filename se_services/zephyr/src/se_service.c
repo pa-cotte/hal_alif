@@ -767,9 +767,8 @@ int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension)
 * 0       - success.
 * -ENODEV - if the MHUv2 devices are not ready.
 */
-static int se_service_mhuv2_nodes_init(const struct device *dev)
+static int se_service_mhuv2_nodes_init(void)
 {
-	ARG_UNUSED(dev);
 	send_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE
 				(DT_NODELABEL(se_service), mhuv2_send_node));
 	recv_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE
