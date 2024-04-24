@@ -1,4 +1,4 @@
 # Copyright 2023 Alif Semiconductor
 
-
-
+source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
+source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"

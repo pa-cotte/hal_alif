@@ -15,7 +15,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(mram_rw, CONFIG_SOC_LOG_LEVEL);
 
-#define MRAM_UNIT_SECTOR_SIZE      16
+#define MRAM_UNIT_SECTOR_SIZE 16
 
 /**
  * @brief write 16 bytes of data into MRAM
@@ -28,28 +28,22 @@ LOG_MODULE_REGISTER(mram_rw, CONFIG_SOC_LOG_LEVEL);
  */
 int write_16bytes(uint8_t *dst, uint8_t *src)
 {
-	if((uint32_t) dst & 0x0000000F)
-	{
-		LOG_ERR("Address %p must be %d bytes aligned for MRAM write\n",
-			dst, MRAM_UNIT_SECTOR_SIZE);
+	if ((uint32_t)dst & 0x0000000F) {
+		LOG_ERR("Address %p must be %d bytes aligned for MRAM write\n", dst,
+			MRAM_UNIT_SECTOR_SIZE);
 		return -EINVAL;
 	}
 	uint32_t tmp_buf[4] = {0};
 	__disable_irq();
-	if((uint32_t) src & 0x0000000F)
-	{
+	if ((uint32_t)src & 0x0000000F) {
 		memcpy(tmp_buf, src, MRAM_UNIT_SECTOR_SIZE);
-		((volatile uint64_t *)dst)[0] =
-					((volatile uint64_t *)tmp_buf)[0];
-		((volatile uint64_t *)dst)[1] =
-					((volatile uint64_t *)tmp_buf)[1];
-	}
-	else
-	{
+		((volatile uint64_t *)dst)[0] = ((volatile uint64_t *)tmp_buf)[0];
+		((volatile uint64_t *)dst)[1] = ((volatile uint64_t *)tmp_buf)[1];
+	} else {
 		((volatile uint64_t *)dst)[0] = ((volatile uint64_t *)src)[0];
 		((volatile uint64_t *)dst)[1] = ((volatile uint64_t *)src)[1];
 	}
-	__asm__ volatile ("dmb 0xF":::"memory");
+	__asm__ volatile("dmb 0xF" ::: "memory");
 #if defined(CONFIG_CACHE_MANAGEMENT)
 	sys_cache_data_flush_range(dst, MRAM_UNIT_SECTOR_SIZE);
 #endif
@@ -66,16 +60,15 @@ int write_16bytes(uint8_t *dst, uint8_t *src)
  */
 int erase_16bytes(uint8_t *dst)
 {
-	if((uint32_t) dst & 0x0000000F)
-	{
-		LOG_ERR("Address %p must be %d bytes aligned for MRAM write\n",
-			dst, MRAM_UNIT_SECTOR_SIZE);
+	if ((uint32_t)dst & 0x0000000F) {
+		LOG_ERR("Address %p must be %d bytes aligned for MRAM write\n", dst,
+			MRAM_UNIT_SECTOR_SIZE);
 		return -EINVAL;
 	}
 	__disable_irq();
 	((volatile uint64_t *)dst)[0] = 0x0;
 	((volatile uint64_t *)dst)[1] = 0x0;
-	__asm__ volatile ("dmb 0xF":::"memory");
+	__asm__ volatile("dmb 0xF" ::: "memory");
 #if defined(CONFIG_CACHE_MANAGEMENT)
 	sys_cache_data_flush_range(dst, MRAM_UNIT_SECTOR_SIZE);
 #endif

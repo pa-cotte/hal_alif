@@ -11,7 +11,7 @@
 #include <errno.h>
 LOG_MODULE_REGISTER(se_service, CONFIG_IPM_LOG_LEVEL);
 
-#define DT_DRV_COMPAT   alif_secure_enclave_services
+#define DT_DRV_COMPAT alif_secure_enclave_services
 
 #define CH_ID           0
 #define SERVICE_TIMEOUT 10000
@@ -23,7 +23,6 @@ LOG_MODULE_REGISTER(se_service, CONFIG_IPM_LOG_LEVEL);
 static K_SEM_DEFINE(svc_send_sem, 0, 1);
 static K_SEM_DEFINE(svc_recv_sem, 0, 1);
 static K_MUTEX_DEFINE(svc_mutex);
-
 
 const struct device *send_dev;
 const struct device *recv_dev;
@@ -63,11 +62,19 @@ typedef union {
 	get_device_part_svc_t get_device_part_svc_d;
 	otp_data_t read_otp_svc_d;
 	get_device_revision_data_t get_device_revision_data_d;
+	net_proc_boot_svc_t boot_svc_d;
+	net_proc_shutdown_svc_t shutdown_svc_d;
+	set_services_capabilities_t set_services_capabilities_d;
+	aipm_get_run_profile_svc_t get_run_d;
+	aipm_set_run_profile_svc_t set_run_d;
+	aipm_set_off_profile_svc_t set_off_d;
+	aipm_get_off_profile_svc_t get_off_d;
+
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
 
-// Needed for future APIs
+/* Needed for future APIs */
 #if 0
 static get_toc_version_svc_t get_toc_version_svc_d;
 static generic_svc_t generic_svc_d;
@@ -160,7 +167,6 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 	k_sem_give(&svc_send_sem);
 }
 
-
 /**
 * @brief Send data to SE through MHUv2.
 
@@ -178,20 +184,19 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 * err    - unable to send data.
 * -ETIME - semphores are timed out.
 */
-static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size,
-			  uint32_t timeout)
+static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size, uint32_t timeout)
 {
 	int err;
 	int service_id = ((service_header_t *)ptr)->hdr_service_id;
 	global_address = local_to_global(ptr);
-	__asm__ volatile ("dmb 0xF":::"memory");
+	__asm__ volatile("dmb 0xF" ::: "memory");
 	sys_cache_data_flush_range(ptr, dcache_size);
 
 	err = mhuv2_ipm_send(send_dev, CH_ID, &global_address);
 	if (err) {
 		LOG_ERR("failed to send request for MSG(error: %d)\n", err);
 		return err;
-        }
+	}
 
 	if (k_sem_take(&svc_send_sem, K_MSEC(timeout)) != 0) {
 		LOG_ERR("service %d send is timed out!\n", service_id);
@@ -220,20 +225,18 @@ int se_service_sync(void)
 	int err, i = 0;
 
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.service_header.hdr_service_id =
-					SERVICE_MAINTENANCE_HEARTBEAT_ID;
+	se_service_all_svc_d.service_header.hdr_service_id = SERVICE_MAINTENANCE_HEARTBEAT_ID;
 
 	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
 	while (i < MAX_TRIES) {
-		err = send_msg_to_se((uint32_t *)
-			&se_service_all_svc_d.service_header,
-			sizeof(se_service_all_svc_d.service_header),
-			SYNC_TIMEOUT);
-		if (!err)
+		err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.service_header,
+				     sizeof(se_service_all_svc_d.service_header), SYNC_TIMEOUT);
+		if (!err) {
 			break;
+		}
 		/* SE service timed out. Increment count */
 		++i;
 	}
@@ -244,7 +247,6 @@ int se_service_sync(void)
 	}
 	return 0;
 }
-
 
 /**
 * @brief Send heartbeat service request to SE to check if SE is alive.
@@ -262,21 +264,16 @@ int se_service_heartbeat(void)
 {
 	int err;
 
-	if(k_mutex_lock(&svc_mutex,K_MSEC(MUTEX_TIMEOUT)))
-	{
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
 		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
 		return errno;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.service_header.hdr_service_id =
-					SERVICE_MAINTENANCE_HEARTBEAT_ID;
-	err = send_msg_to_se((uint32_t *)
-			&se_service_all_svc_d.service_header,
-			sizeof(se_service_all_svc_d.service_header),
-			SYNC_TIMEOUT);
+	se_service_all_svc_d.service_header.hdr_service_id = SERVICE_MAINTENANCE_HEARTBEAT_ID;
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.service_header,
+			     sizeof(se_service_all_svc_d.service_header), SYNC_TIMEOUT);
 	k_mutex_unlock(&svc_mutex);
-	if (err)
-	{
+	if (err) {
 		LOG_ERR("%s failed with %d\n", __func__, err);
 		return err;
 	}
@@ -314,14 +311,11 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 		return errno;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.get_rnd_svc_d.header.hdr_service_id =
-					SERVICE_CRYPTOCELL_GET_RND;
+	se_service_all_svc_d.get_rnd_svc_d.header.hdr_service_id = SERVICE_CRYPTOCELL_GET_RND;
 	se_service_all_svc_d.get_rnd_svc_d.send_rnd_length = length;
 
-	err = send_msg_to_se((uint32_t *)
-			&se_service_all_svc_d.get_rnd_svc_d,
-			sizeof(se_service_all_svc_d.get_rnd_svc_d),
-			SERVICE_TIMEOUT);
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_rnd_svc_d,
+			     sizeof(se_service_all_svc_d.get_rnd_svc_d), SERVICE_TIMEOUT);
 	resp_err = se_service_all_svc_d.get_rnd_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -329,12 +323,10 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 		return err;
 	}
 	if (resp_err) {
-		LOG_ERR("%s: received response error = %d\n",
-			__func__, resp_err);
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 		return resp_err;
 	}
-	memcpy(buffer, (uint8_t *)se_service_all_svc_d.get_rnd_svc_d.resp_rnd,
-	       length);
+	memcpy(buffer, (uint8_t *)se_service_all_svc_d.get_rnd_svc_d.resp_rnd, length);
 
 	return 0;
 }
@@ -370,12 +362,10 @@ int se_service_get_toc_number(uint32_t *ptoc)
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
 	se_service_all_svc_d.get_toc_number_svc_d.header.hdr_service_id =
-					SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER;
+		SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER;
 
-	err = send_msg_to_se((uint32_t *)
-		&se_service_all_svc_d.get_toc_number_svc_d,
-		sizeof(se_service_all_svc_d.get_toc_number_svc_d),
-		SERVICE_TIMEOUT);
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_toc_number_svc_d,
+			     sizeof(se_service_all_svc_d.get_toc_number_svc_d), SERVICE_TIMEOUT);
 	resp_err = se_service_all_svc_d.get_toc_number_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -383,8 +373,7 @@ int se_service_get_toc_number(uint32_t *ptoc)
 		return err;
 	}
 	if (resp_err) {
-		LOG_ERR("%s: received response error = %d\n",
-			__func__, resp_err);
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 		return resp_err;
 	}
 
@@ -394,22 +383,22 @@ int se_service_get_toc_number(uint32_t *ptoc)
 }
 
 /**
-* @brief Send service request to SE to get revision of SE firmware.
-*
-* Set the service id as SERVICE_APPLICATION_FIRMWARE_VERSION_ID in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* parameters,
-* @prev - placeholder for SE firmware string up to VERSION_RESPONSE_LENGTH
-*        characters.
-*
-* returns,
-* 0        - success, prev contains SE firmware string.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * @brief Send service request to SE to get revision of SE firmware.
+ *
+ * Set the service id as SERVICE_APPLICATION_FIRMWARE_VERSION_ID in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @prev - placeholder for SE firmware string up to VERSION_RESPONSE_LENGTH
+ *        characters.
+ *
+ * returns,
+ * 0        - success, prev contains SE firmware string.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_se_revision(uint8_t *prev)
 {
 	int err, resp_err = -1;
@@ -425,12 +414,10 @@ int se_service_get_se_revision(uint8_t *prev)
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
 	se_service_all_svc_d.get_se_revision_svc_d.header.hdr_service_id =
-					SERVICE_APPLICATION_FIRMWARE_VERSION_ID;
+		SERVICE_APPLICATION_FIRMWARE_VERSION_ID;
 
-	err = send_msg_to_se((uint32_t *)
-		&se_service_all_svc_d.get_se_revision_svc_d,
-		sizeof(se_service_all_svc_d.get_se_revision_svc_d),
-		SERVICE_TIMEOUT);
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_se_revision_svc_d,
+			     sizeof(se_service_all_svc_d.get_se_revision_svc_d), SERVICE_TIMEOUT);
 	resp_err = se_service_all_svc_d.get_se_revision_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -438,33 +425,31 @@ int se_service_get_se_revision(uint8_t *prev)
 		return err;
 	}
 	if (resp_err) {
-		LOG_ERR("%s: received response error = %d\n",
-			__func__, resp_err);
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 		return resp_err;
 	}
-	memcpy(prev, (uint8_t *)
-	se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision,
-	se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision_length);
+	memcpy(prev, (uint8_t *)se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision,
+	       se_service_all_svc_d.get_se_revision_svc_d.resp_se_revision_length);
 
 	return 0;
 }
 
 /**
-* @brief Send service request to SE to get device part number.
-*
-* Set the service id as SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* parameters,
-* @pdev_part - placeholder for device part number.
-*
-* returns,
-* 0        - success, pdev_part contains device part number.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * @brief Send service request to SE to get device part number.
+ *
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @pdev_part - placeholder for device part number.
+ *
+ * returns,
+ * 0        - success, pdev_part contains device part number.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_device_part_number(uint32_t *pdev_part)
 {
 	int err, resp_err = -1;
@@ -480,12 +465,10 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
 	se_service_all_svc_d.get_device_part_svc_d.header.hdr_service_id =
-				SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER;
+		SERVICE_SYSTEM_MGMT_GET_DEVICE_PART_NUMBER;
 
-	err = send_msg_to_se((uint32_t *)
-		&se_service_all_svc_d.get_device_part_svc_d,
-		sizeof(se_service_all_svc_d.get_device_part_svc_d),
-		SERVICE_TIMEOUT);
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_device_part_svc_d,
+			     sizeof(se_service_all_svc_d.get_device_part_svc_d), SERVICE_TIMEOUT);
 	resp_err = se_service_all_svc_d.get_device_part_svc_d.resp_error_code;
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -493,33 +476,31 @@ int se_service_get_device_part_number(uint32_t *pdev_part)
 		return err;
 	}
 	if (resp_err) {
-		LOG_ERR("%s: received response error = %d\n",
-			__func__, resp_err);
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 		return resp_err;
 	}
-	*pdev_part =
-		se_service_all_svc_d.get_device_part_svc_d.resp_device_string;
+	*pdev_part = se_service_all_svc_d.get_device_part_svc_d.resp_device_string;
 
 	return 0;
 }
 
 /**
-* @brief Send service request to SE to read OTP which would be used as
-* an unique serial number for each device
-*
-* Set the service id as SERVICE_SYSTEM_MGMT_READ_OTP in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* parameters,
-* @potp_data - placeholder for an unique serial number.
-*
-* returns,
-* 0        - success, potp_data contains 8 bytes unique serial number.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - Error in service response for the requested service.
-*/
+ * @brief Send service request to SE to read OTP which would be used as
+ * an unique serial number for each device
+ *
+ * Set the service id as SERVICE_SYSTEM_MGMT_READ_OTP in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @potp_data - placeholder for an unique serial number.
+ *
+ * returns,
+ * 0        - success, potp_data contains 8 bytes unique serial number.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - Error in service response for the requested service.
+ */
 int se_service_read_otp(uint32_t *potp_data)
 {
 	int err, resp_err = -1;
@@ -535,29 +516,22 @@ int se_service_read_otp(uint32_t *potp_data)
 		return errno;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.read_otp_svc_d.header.hdr_service_id =
-					SERVICE_SYSTEM_MGMT_READ_OTP;
+	se_service_all_svc_d.read_otp_svc_d.header.hdr_service_id = SERVICE_SYSTEM_MGMT_READ_OTP;
 
-	for(otp_row = OTP_MANUFACTURE_INFO_SERIAL_NUMBER_START ;
-	    otp_row<=OTP_MANUFACTURE_INFO_SERIAL_NUMBER_END ;
-	    otp_row++, potp_data++)
-	{
+	for (otp_row = OTP_MANUFACTURE_INFO_SERIAL_NUMBER_START;
+	     otp_row <= OTP_MANUFACTURE_INFO_SERIAL_NUMBER_END; otp_row++, potp_data++) {
 		se_service_all_svc_d.read_otp_svc_d.send_offset = otp_row;
-		err = send_msg_to_se((uint32_t *)
-			&se_service_all_svc_d.read_otp_svc_d,
-			sizeof(se_service_all_svc_d.read_otp_svc_d),
-			SERVICE_TIMEOUT);
+		err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.read_otp_svc_d,
+				     sizeof(se_service_all_svc_d.read_otp_svc_d), SERVICE_TIMEOUT);
 		resp_err = se_service_all_svc_d.read_otp_svc_d.resp_error_code;
-		if (err)
-		{
+		if (err) {
 			k_mutex_unlock(&svc_mutex);
 			LOG_ERR("%s failed with %d\n", __func__, err);
 			return err;
 		}
 		if (resp_err) {
 			k_mutex_unlock(&svc_mutex);
-			LOG_ERR("%s: received response error = %d\n",
-				__func__, resp_err);
+			LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 			return resp_err;
 		}
 		*potp_data = se_service_all_svc_d.read_otp_svc_d.otp_word;
@@ -598,15 +572,13 @@ int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
 		return errno;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.get_device_revision_data_d.header.hdr_service_id
-			= SERVICE_SYSTEM_MGMT_GET_DEVICE_REVISION_DATA;
+	se_service_all_svc_d.get_device_revision_data_d.header.hdr_service_id =
+		SERVICE_SYSTEM_MGMT_GET_DEVICE_REVISION_DATA;
 
-	err = send_msg_to_se((uint32_t *)
-		&se_service_all_svc_d.get_device_revision_data_d,
-		sizeof(se_service_all_svc_d.get_device_revision_data_d),
-		SERVICE_TIMEOUT);
-	resp_err =
-	se_service_all_svc_d.get_device_revision_data_d.resp_error_code;
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_device_revision_data_d,
+			     sizeof(se_service_all_svc_d.get_device_revision_data_d),
+			     SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_device_revision_data_d.resp_error_code;
 	if (err) {
 		k_mutex_unlock(&svc_mutex);
 		LOG_ERR("%s failed with %d\n", __func__, err);
@@ -614,36 +586,34 @@ int se_service_system_get_device_data(get_device_revision_data_t *pdev_data)
 	}
 	if (resp_err) {
 		k_mutex_unlock(&svc_mutex);
-		LOG_ERR("%s: received response error = %d\n",
-			__func__, resp_err);
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
 		return resp_err;
 	}
-	pdev_data->revision_id =
-		se_service_all_svc_d.get_device_revision_data_d.revision_id;
+	pdev_data->revision_id = se_service_all_svc_d.get_device_revision_data_d.revision_id;
 	memcpy((uint8_t *)pdev_data->SerialN,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.SerialN,
-	sizeof(pdev_data->SerialN));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.SerialN,
+	       sizeof(pdev_data->SerialN));
 	memcpy((uint8_t *)pdev_data->ALIF_PN,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.ALIF_PN,
-	sizeof(pdev_data->ALIF_PN));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.ALIF_PN,
+	       sizeof(pdev_data->ALIF_PN));
 	memcpy((uint8_t *)pdev_data->HBK0,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK0,
-	sizeof(pdev_data->HBK0));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK0,
+	       sizeof(pdev_data->HBK0));
 	memcpy((uint8_t *)pdev_data->DCU,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.DCU,
-	sizeof(pdev_data->DCU));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.DCU,
+	       sizeof(pdev_data->DCU));
 	memcpy((uint8_t *)pdev_data->config,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.config,
-	sizeof(pdev_data->config));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.config,
+	       sizeof(pdev_data->config));
 	memcpy((uint8_t *)pdev_data->HBK1,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK1,
-	sizeof(pdev_data->HBK1));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK1,
+	       sizeof(pdev_data->HBK1));
 	memcpy((uint8_t *)pdev_data->HBK_FW,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK_FW,
-	sizeof(pdev_data->HBK_FW));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.HBK_FW,
+	       sizeof(pdev_data->HBK_FW));
 	memcpy((uint8_t *)pdev_data->MfgData,
-	(uint8_t *)se_service_all_svc_d.get_device_revision_data_d.MfgData,
-	sizeof(pdev_data->MfgData));
+	       (uint8_t *)se_service_all_svc_d.get_device_revision_data_d.MfgData,
+	       sizeof(pdev_data->MfgData));
 
 	pdev_data->LCS = se_service_all_svc_d.get_device_revision_data_d.LCS;
 
@@ -760,28 +730,325 @@ int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension)
 }
 
 /**
-* @brief Check the MHUv2 devices are ready and initialize callbacks for
-* the recevied and send data.
-*
-* returns,
-* 0       - success.
-* -ENODEV - if the MHUv2 devices are not ready.
-*/
+ * @brief Send service request to SE to boot ES0
+ *
+ * At boot the ES0 is not started automatically.
+ * This API function will start the core but it is encouraged not to call this
+ * from application, separate power manager library should be used instead.
+ *
+ * parameters,
+ * @nvds_buff - placeholder for NVDS data.
+ * @nvds_size - length of the passed NVDS buff
+ *
+ * returns,
+ * 0        - success.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - Error in service response for the requested service.
+ */
+int se_service_boot_es0(uint8_t *nvds_buff, uint16_t nvds_size)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.boot_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_BOOT_SET_ARGS;
+
+	se_service_all_svc_d.boot_svc_d.send_nvds_src_addr = local_to_global(nvds_buff);
+	se_service_all_svc_d.boot_svc_d.send_nvds_dst_addr = 0x501D0000;
+	se_service_all_svc_d.boot_svc_d.send_nvds_copy_len = nvds_size;
+	se_service_all_svc_d.boot_svc_d.send_trng_dst_addr = 0x501D0200;
+	se_service_all_svc_d.boot_svc_d.send_trng_len = 64;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.boot_svc_d,
+			     sizeof(se_service_all_svc_d.boot_svc_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.boot_svc_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
+
+/**
+ * @brief Send service request to SE to shutdown ES0
+ *
+ * ES0 is started using se_service_boot_es0 and when the application does not need
+ * the services of ES0 anymore it should be shutdown to save power.
+ * This API function will shutdown the core but it is encouraged not to call this
+ * from application, separate power manager library should be used instead.
+ *
+ * parameters,
+ * @nvds_buff - placeholder for NVDS data.
+ * @nvds_size - length of the passed NVDS buff
+ *
+ * returns,
+ * 0        - success.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - Error in service response for the requested service.
+ */
+int se_service_shutdown_es0(void)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.shutdown_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_SHUTDOWN;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.shutdown_svc_d,
+			     sizeof(se_service_all_svc_d.shutdown_svc_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.shutdown_svc_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
+
+int se_service_get_run_cfg(run_profile_t *pp)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_run_d.header.hdr_service_id = SERVICE_POWER_GET_RUN_REQ_ID;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_run_d,
+			     sizeof(se_service_all_svc_d.get_run_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_run_d.resp_error_code;
+
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		k_mutex_unlock(&svc_mutex);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		k_mutex_unlock(&svc_mutex);
+		return resp_err;
+	}
+
+	pp->aon_clk_src = se_service_all_svc_d.get_run_d.resp_aon_clk_src;
+	pp->run_clk_src = se_service_all_svc_d.get_run_d.resp_run_clk_src;
+	pp->cpu_clk_freq = se_service_all_svc_d.get_run_d.resp_cpu_clk_freq;
+	pp->scaled_clk_freq = se_service_all_svc_d.get_run_d.resp_scaled_clk_freq;
+	pp->dcdc_mode = se_service_all_svc_d.get_run_d.resp_dcdc_mode;
+	pp->dcdc_voltage = se_service_all_svc_d.get_run_d.resp_dcdc_voltage;
+	pp->memory_blocks = se_service_all_svc_d.get_run_d.resp_memory_blocks;
+	pp->ip_clock_gating = se_service_all_svc_d.get_run_d.resp_ip_clock_gating;
+	pp->phy_pwr_gating = se_service_all_svc_d.get_run_d.resp_phy_pwr_gating;
+	pp->power_domains = se_service_all_svc_d.get_run_d.resp_power_domains;
+	pp->vdd_ioflex_3V3 = se_service_all_svc_d.get_run_d.resp_vdd_ioflex_3V3;
+	pp->wakeup_events = se_service_all_svc_d.get_run_d.resp_wakeup_events;
+	pp->ewic_cfg = se_service_all_svc_d.get_run_d.resp_ewic_cfg;
+	pp->vtor_address = se_service_all_svc_d.get_run_d.resp_vtor_address;
+	pp->vtor_address_ns = se_service_all_svc_d.get_run_d.resp_vtor_address_ns;
+	k_mutex_unlock(&svc_mutex);
+
+	return 0;
+}
+
+int se_service_set_run_cfg(run_profile_t *pp)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+
+	se_service_all_svc_d.set_run_d.header.hdr_service_id = SERVICE_POWER_SET_RUN_REQ_ID;
+	se_service_all_svc_d.set_run_d.send_aon_clk_src = pp->aon_clk_src;
+	se_service_all_svc_d.set_run_d.send_run_clk_src = pp->run_clk_src;
+	se_service_all_svc_d.set_run_d.send_cpu_clk_freq = pp->cpu_clk_freq;
+	se_service_all_svc_d.set_run_d.send_scaled_clk_freq = pp->scaled_clk_freq;
+	se_service_all_svc_d.set_run_d.send_dcdc_mode = pp->dcdc_mode;
+	se_service_all_svc_d.set_run_d.send_dcdc_voltage = pp->dcdc_voltage;
+	se_service_all_svc_d.set_run_d.send_memory_blocks = pp->memory_blocks;
+	se_service_all_svc_d.set_run_d.send_ip_clock_gating = pp->ip_clock_gating;
+	se_service_all_svc_d.set_run_d.send_phy_pwr_gating = pp->phy_pwr_gating;
+	se_service_all_svc_d.set_run_d.send_power_domains = pp->power_domains;
+	se_service_all_svc_d.set_run_d.send_vdd_ioflex_3V3 = pp->vdd_ioflex_3V3;
+	se_service_all_svc_d.set_run_d.send_wakeup_events = pp->wakeup_events;
+	se_service_all_svc_d.set_run_d.send_ewic_cfg = pp->ewic_cfg;
+	se_service_all_svc_d.set_run_d.send_vtor_address = pp->vtor_address;
+	se_service_all_svc_d.set_run_d.send_vtor_address_ns = pp->vtor_address_ns;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_run_d,
+			     sizeof(se_service_all_svc_d.set_run_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.set_run_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
+
+int se_service_get_off_cfg(off_profile_t *wp)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_off_d.header.hdr_service_id = SERVICE_POWER_GET_OFF_REQ_ID;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_off_d,
+			     sizeof(se_service_all_svc_d.get_off_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_off_d.resp_error_code;
+
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		k_mutex_unlock(&svc_mutex);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		k_mutex_unlock(&svc_mutex);
+		return resp_err;
+	}
+
+	wp->dcdc_voltage = se_service_all_svc_d.get_off_d.resp_dcdc_voltage;
+	wp->memory_blocks = se_service_all_svc_d.get_off_d.resp_memory_blocks;
+	wp->power_domains = se_service_all_svc_d.get_off_d.resp_power_domains;
+	wp->aon_clk_src = se_service_all_svc_d.get_off_d.resp_aon_clk_src;
+	wp->stby_clk_src = se_service_all_svc_d.get_off_d.resp_stby_clk_src;
+	wp->stby_clk_freq = se_service_all_svc_d.get_off_d.resp_stby_clk_freq;
+	wp->sysref_clk_src = 0; /* currently unused */
+	wp->ip_clock_gating = se_service_all_svc_d.get_off_d.resp_ip_clock_gating;
+	wp->phy_pwr_gating = se_service_all_svc_d.get_off_d.resp_phy_pwr_gating;
+	wp->vdd_ioflex_3V3 = se_service_all_svc_d.get_off_d.resp_vdd_ioflex_3V3;
+	wp->vtor_address = se_service_all_svc_d.get_off_d.resp_vtor_address;
+	wp->vtor_address_ns = se_service_all_svc_d.get_off_d.resp_vtor_address_ns;
+	wp->wakeup_events = se_service_all_svc_d.get_off_d.resp_wakeup_events;
+	wp->ewic_cfg = se_service_all_svc_d.get_off_d.resp_ewic_cfg;
+	k_mutex_unlock(&svc_mutex);
+	return 0;
+}
+
+int se_service_set_off_cfg(off_profile_t *wp)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.set_off_d.header.hdr_service_id = SERVICE_POWER_SET_OFF_REQ_ID;
+	se_service_all_svc_d.set_off_d.send_dcdc_voltage = wp->dcdc_voltage;
+	se_service_all_svc_d.set_off_d.send_memory_blocks = wp->memory_blocks;
+	se_service_all_svc_d.set_off_d.send_power_domains = wp->power_domains;
+	se_service_all_svc_d.set_off_d.send_aon_clk_src = wp->aon_clk_src;
+	se_service_all_svc_d.set_off_d.send_stby_clk_src = wp->stby_clk_src;
+	se_service_all_svc_d.set_off_d.send_stby_clk_freq = wp->stby_clk_freq;
+	se_service_all_svc_d.set_off_d.send_ip_clock_gating = wp->ip_clock_gating;
+	se_service_all_svc_d.set_off_d.send_phy_pwr_gating = wp->phy_pwr_gating; /*typedef */
+	se_service_all_svc_d.set_off_d.send_vdd_ioflex_3V3 = wp->vdd_ioflex_3V3;
+	se_service_all_svc_d.set_off_d.send_vtor_address = wp->vtor_address;
+	se_service_all_svc_d.set_off_d.send_vtor_address_ns = wp->vtor_address_ns;
+	se_service_all_svc_d.set_off_d.send_wakeup_events = wp->wakeup_events;
+	se_service_all_svc_d.set_off_d.send_ewic_cfg = wp->ewic_cfg;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_off_d,
+			     sizeof(se_service_all_svc_d.set_off_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.set_off_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
+
+int se_service_system_set_services_debug(bool debug_enable)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+
+	se_service_all_svc_d.set_services_capabilities_d.header.hdr_service_id =
+		SERVICE_POWER_SET_OFF_REQ_ID;
+	se_service_all_svc_d.set_services_capabilities_d.send_services_debug = debug_enable;
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_services_capabilities_d,
+			     sizeof(se_service_all_svc_d.set_services_capabilities_d),
+			     SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.set_services_capabilities_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Check the MHUv2 devices are ready and initialize callbacks for
+ * the received and send data.
+ *
+ * returns,
+ * 0       - success.
+ * -ENODEV - if the MHUv2 devices are not ready.
+ */
 static int se_service_mhuv2_nodes_init(void)
 {
-	send_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE
-				(DT_NODELABEL(se_service), mhuv2_send_node));
-	recv_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE
-				(DT_NODELABEL(se_service), mhuv2_recv_node));
+	send_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE(DT_NODELABEL(se_service), mhuv2_send_node));
+	recv_dev = DEVICE_DT_GET_OR_NULL(DT_PHANDLE(DT_NODELABEL(se_service), mhuv2_recv_node));
 
 	if (!device_is_ready(recv_dev) || !device_is_ready(send_dev)) {
-	        printk("MHU devices not ready\n");
-	        return -ENODEV;
+		printk("MHU devices not ready\n");
+		return -ENODEV;
 	}
 	mhuv2_ipm_rb(recv_dev, callback_for_receive_msg, NULL);
 	mhuv2_ipm_rb(send_dev, callback_for_send_msg, NULL);
 	return 0;
 }
 
-SYS_INIT(se_service_mhuv2_nodes_init, POST_KERNEL,
-	 CONFIG_SE_SERVICE_INIT_PRIORITY);
+SYS_INIT(se_service_mhuv2_nodes_init, POST_KERNEL, CONFIG_SE_SERVICE_INIT_PRIORITY);

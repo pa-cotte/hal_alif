@@ -162,11 +162,11 @@ enum SERVICE_ID_t {
   /**
    * ExtSys0 Services
    */
-  SERVICE_EXTSYS0_START        = 800,                                  /**< SERVICE_EXTSYS0_START                    */
-  SERVICE_EXTSYS0_BOOT_SET_ARGS = SERVICE_EXTSYS0_START,
-  SERVICE_EXTSYS0_SHUTDOWN,
-  SERVICE_EXTSYS0_END          = 899                                   /**< SERVICE_EXTSYS0_END                      */
-
+	SERVICE_EXTSYS0_START = 800, /**< SERVICE_EXTSYS0_START                    */
+	SERVICE_EXTSYS0_BOOT_SET_ARGS = SERVICE_EXTSYS0_START,
+	SERVICE_EXTSYS0_EXTSYS1_WAKEUP,
+	SERVICE_EXTSYS0_SHUTDOWN,
+	SERVICE_EXTSYS0_END = 899 /**< SERVICE_EXTSYS0_END                      */
 };
 
 #endif /* __SERVICES_LIB_IDS_H__ */
