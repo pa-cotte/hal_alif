@@ -3,12 +3,13 @@
 source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
 source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"
 
+
 config ALIF_ROM_INCLUDED
 	bool
 	depends on HAVE_BLE_HOST_ROM_IMAGE
 	select HAVE_CUSTOM_LINKER_SCRIPT
 	help
-	  This option enables Alif Semiconductor's BLE Host Stack and 802.15.4 messaging.
+	  This option enables Alif Semiconductor's BLE Host Stack, LC3 codec and 802.15.4 messaging.
 
 if ALIF_ROM_INCLUDED
 config CUSTOM_LINKER_SCRIPT
@@ -18,3 +19,5 @@ config CUSTOM_LINKER_SCRIPT
 endif # ALIF_ROM_INCLUDED
 
 source "$(ZEPHYR_ALIF_MODULE_DIR)/lc3/zephyr/Kconfig"
+
+source "$(ZEPHYR_ALIF_MODULE_DIR)/ieee802154/Kconfig"
