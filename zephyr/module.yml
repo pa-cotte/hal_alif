@@ -1,3 +1,4 @@
+name: alif
 build:
   cmake: .
-  kconfig: se_services/zephyr/Kconfig
+  kconfig: zephyr/Kconfig
