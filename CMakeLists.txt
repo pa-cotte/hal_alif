@@ -18,4 +18,5 @@ if(CONFIG_HAS_ALIF_SE_SERVICES)
 endif()
 zephyr_include_directories(
   common/include
+  driver/include
 )
