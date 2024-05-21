@@ -14,3 +14,5 @@
 /* Symbols in ROM */
 #include "lc3/rom_symbols_lc3.lds"
 
+#include "ble/rom_symbols_ble.lds"
+

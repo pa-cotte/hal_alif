@@ -1,8 +1,35 @@
 # Copyright 2023 Alif Semiconductor
 
-source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
-source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"
+# BLE host stack related configurations
 
+choice BT_STACK_SELECTION
+	prompt "Bluetooth Stack Selection"
+	default BT_HCI
+	depends on HAVE_BLE_802154_LINK_LAYER
+	help
+	  Select the Bluetooth stack to compile.
+
+config BT_HCI
+	bool "HCI-based"
+	help
+	  HCI-based stack with optional host & controller parts and an
+	  HCI driver in between.
+
+config BT_CUSTOM
+	bool "Alif's BLE Host stack"
+	select ALIF_BLE_HOST
+	help
+	  Alif Semiconductor BLE boards have host stack on ROM and by selecting
+	  this option it becomes available as a build option.
+
+endchoice
+
+config ALIF_BLE_HOST
+	bool
+	select ALIF_ROM_INCLUDED
+	select FPU
+	help
+	  This option enables Alif Semiconductor's BLE Host Stack.
 
 config ALIF_ROM_INCLUDED
 	bool
@@ -18,6 +45,10 @@ config CUSTOM_LINKER_SCRIPT
 
 endif # ALIF_ROM_INCLUDED
 
-source "$(ZEPHYR_ALIF_MODULE_DIR)/lc3/zephyr/Kconfig"
 
+source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
+source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"
+source "$(ZEPHYR_ALIF_MODULE_DIR)/lc3/zephyr/Kconfig"
 source "$(ZEPHYR_ALIF_MODULE_DIR)/ieee802154/Kconfig"
+source "$(ZEPHYR_ALIF_MODULE_DIR)/ble/zephyr/Kconfig"
+
