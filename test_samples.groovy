@@ -19,6 +19,7 @@ def zephyr_init() {
         sh """#!/bin/bash -xe
             eval `ssh-agent -s`
             . venv/bin/activate
+	    echo "Unpackage from tar"
             cp /media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz .
             tar xf zephyrproject_zephyr_alif.tar.gz
             cd zephyrproject/zephyr
@@ -31,8 +32,23 @@ def zephyr_init() {
         sh """#!/bin/bash -xe
             . venv/bin/activate
             eval `ssh-agent -s`
-            west init zephyrproject -m org-115832732@github.com:AlifSemiDev/zephyr_alif.git
+            west init zephyrproject -m git@github.com-AlifSemiDev:AlifSemiDev/zephyr_alif.git
             cd zephyrproject/
+
+	    echo "Clone using west"
+
+	    # We need to modify hal_alif submodule first
+	    west update zephyr
+	    echo "
+	manifest:
+	  projects:
+	    - name: hal_alif.git
+	    revision: main
+	    path: modules/hal/alif
+	    url: git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git
+	    groups:
+	      - hal" > zephyr/submanifests/hal_alif.yaml
+
             west update
             cd zephyr
             ssh-add /home/alif-fi/.ssh/id_ed25519_alif-ci
@@ -57,8 +73,10 @@ def build_zephyr(String sample, String build_dir, String board, String conf_file
         . venv/bin/activate
         cd zephyrproject/zephyr
         ssh-add /home/alif-fi/.ssh/id_ed25519_alif-ci
-        //Go and checkout the PR branch in ../modules/hal/alif before building!
+        # Go and checkout the PR branch in ../modules/hal/alif before building!
         cd ../modules/hal/alif
+	git remote set-url origin git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git
+
         git fetch --all
         git branch -avv
         git remote -v

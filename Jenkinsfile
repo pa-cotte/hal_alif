@@ -43,7 +43,7 @@ def generate_ble_stage(sample) {
         stage("Build ${sample} sample") {
             script {
                 common_funcs = load 'test_samples.groovy'
-                common_funcs.build_zephyr("samples/bluetooth/${sample}", "build-b1-${sample}", "alif_b1_dk_rtss_he");
+                common_funcs.build_zephyr("samples/bluetooth/${sample}", "build-b1-${sample}", "alif_b1_fpga_rtss_he_ble");
             }
         }
     }
@@ -57,6 +57,7 @@ pipeline {
     options {
     	// Timeout for the whole build
         timeout(time: 2, unit: 'HOURS')
+	skipDefaultCheckout() // Done manually
         timestamps()
     }
     stages {
@@ -66,7 +67,7 @@ pipeline {
                     expression { return params.FORCE_CLEAN_CACHE }
                 }
             }
-            agent { label 'git-ssh' }
+            agent { label 'git-ssh2' }
             steps {
                 script {
                     common_funcs = load 'test_samples.groovy'
@@ -75,8 +76,19 @@ pipeline {
             }
         }
         stage('Init') {
-            agent { label 'git-ssh' }
+            agent { label 'git-ssh2' }
             steps {
+		script {
+		    sh '''#!/bin/bash
+		       if [ -z ${CHANGE_BRANCH} ];
+                       then
+                           export CHANGE_BRANCH=$BRANCH_NAME;
+                           echo "checkout branch: ${CHANGE_BRANCH}";
+                       fi
+
+		       git clone git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git --branch ${CHANGE_BRANCH} --single-branch --depth 1 .
+		       '''
+		}
                 script {
                     common_funcs = load 'test_samples.groovy'
                 }
@@ -88,7 +100,7 @@ pipeline {
         stage('Build') {
             stages {
                 stage('Build helloworld sample') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -102,7 +114,7 @@ pipeline {
                     }
                 }
                 stage('BLE samples stage 1') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -116,7 +128,7 @@ pipeline {
                     }
                 }
                 stage('BLE samples stage 2') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -130,7 +142,7 @@ pipeline {
                     }
                 }
                 stage('BLE samples stage 3') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -144,7 +156,7 @@ pipeline {
                     }
                 }
                 stage('BLE samples stage 4') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -158,7 +170,7 @@ pipeline {
                     }
                 }
                 stage('BLE samples stage 5') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         script {
@@ -172,7 +184,7 @@ pipeline {
                     }
                 }
                 stage('Cleanup stage') {
-                    agent { label 'git-ssh' }
+                    agent { label 'git-ssh2' }
                     options { skipDefaultCheckout() }
                     steps {
                         cleanWs()
