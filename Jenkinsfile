@@ -70,8 +70,8 @@ pipeline {
             agent { label 'git-ssh2' }
             steps {
                 script {
-                    common_funcs = load 'test_samples.groovy'
-                    common_funcs.clean_zephyr_cache();
+                    sh """#!/bin/bash -xe
+        	       rm -f /media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz"""
                 }
             }
         }
@@ -84,15 +84,21 @@ pipeline {
                        then
                            export CHANGE_BRANCH=$BRANCH_NAME;
                            echo "checkout branch: ${CHANGE_BRANCH}";
+		       else
+			   git pull
                        fi
-
-		       git clone git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git --branch ${CHANGE_BRANCH} --single-branch --depth 1 .
+		       if [ ! -d "zephyr" ]; then
+		           git clone git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git --branch ${CHANGE_BRANCH} --single-branch --depth 1 .
+		       fi
 		       '''
 		}
                 script {
                     common_funcs = load 'test_samples.groovy'
                 }
                 script {
+		    sh '''#!/bin/bash
+		       echo "CALL zephyr_init()"
+		    '''
                     common_funcs.zephyr_init();
                 }
             }

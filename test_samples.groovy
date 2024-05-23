@@ -1,8 +1,3 @@
-def clean_zephyr_cache() {
-    sh """#!/bin/bash -xe
-        rm -f /media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz"""
-}
-
 def zephyr_init() {
     sh """#!/bin/bash -xe
         printenv NODE_NAME
@@ -22,9 +17,13 @@ def zephyr_init() {
 	    echo "Unpackage from tar"
             cp /media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz .
             tar xf zephyrproject_zephyr_alif.tar.gz
-            cd zephyrproject/zephyr
-            #west update
-            west zephyr-export
+            cd zephyrproject
+	    cd alif
+	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' git checkout main
+	    cd ..
+            GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west update
+	    cd zephyr
+            GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west zephyr-export
             pip install -r scripts/requirements.txt
             cd ../..
             deactivate"""
@@ -32,28 +31,18 @@ def zephyr_init() {
         sh """#!/bin/bash -xe
             . venv/bin/activate
             eval `ssh-agent -s`
-            west init zephyrproject -m git@github.com-AlifSemiDev:AlifSemiDev/zephyr_alif.git
+	    echo "Initialize SDK"
+	    ls -la
+
+	    # rm -rf zephyrproject
+	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west init zephyrproject -m org-115832732@github.com:AlifSemiDev/sdk-alif.git
+
             cd zephyrproject/
 
-	    echo "Clone using west"
+	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west update
 
-	    # We need to modify hal_alif submodule first
-	    west update zephyr
-	    echo "
-	manifest:
-	  projects:
-	    - name: hal_alif.git
-	    revision: main
-	    path: modules/hal/alif
-	    url: git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git
-	    groups:
-	      - hal" > zephyr/submanifests/hal_alif.yaml
-
-            west update
             cd zephyr
-            ssh-add /home/alif-fi/.ssh/id_ed25519_alif-ci
-            west update
-            west zephyr-export
+            GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west zephyr-export
             pip install -r scripts/requirements.txt
             cd ../..
             tar -czvf zephyrproject_zephyr_alif.tar.gz zephyrproject
@@ -72,16 +61,14 @@ def build_zephyr(String sample, String build_dir, String board, String conf_file
         env
         . venv/bin/activate
         cd zephyrproject/zephyr
-        ssh-add /home/alif-fi/.ssh/id_ed25519_alif-ci
         # Go and checkout the PR branch in ../modules/hal/alif before building!
         cd ../modules/hal/alif
-	git remote set-url origin git@github.com-AlifSemiDev:AlifSemiDev/hal_alif.git
 
-        git fetch --all
-        git branch -avv
+        GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' git fetch --all
+        GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' git branch -avv
         git remote -v
         if [ -n ${CHANGE_BRANCH} ];
-          then git checkout $CHANGE_BRANCH;
+          then GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' git checkout $CHANGE_BRANCH;
         else
           echo "building 'main' branch";
         fi
