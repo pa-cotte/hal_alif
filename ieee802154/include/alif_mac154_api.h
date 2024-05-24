@@ -15,6 +15,25 @@
 #define ACK_MAX_FRAME_LEN 127
 
 /**
+ * @brief Supported HW features
+ *
+ * ALIF_IEEE802154_MAC_TXTIME
+ *	Delayed transmission is supported. Timestamps on received frames has
+ *	uint64_t timestamps and transmission can be controlled using fractional part
+ *
+ * ALIF_IEEE802154_MAC_TX_SEC
+ *	Transmission security supported
+ *
+ * ALIF_IEEE802154_MAC_RX_OPT
+ *	RX can be kept on during transmissions and does not need to be
+ *	stopped and started
+ *
+ */
+#define ALIF_IEEE802154_MAC_TXTIME BIT(1)
+#define ALIF_IEEE802154_MAC_TX_SEC BIT(2)
+#define ALIF_IEEE802154_MAC_RX_OPT BIT(3)
+
+/**
  * @brief Transmission request parameters
  *
  */
@@ -130,6 +149,12 @@ enum alif_mac154_status_code alif_mac154_reset(void);
 enum alif_mac154_status_code alif_mac154_version_get(uint8_t *p_major, uint8_t *p_minor,
 						     uint8_t *p_patch);
 
+/**
+ * @brief Get Alif 15.4 HW capabilities.
+ *
+ * @return	Mac Hardware supported features
+ */
+uint32_t alif_mac154_capabilities_get(void);
 /**
  * @brief Get current timestamp
  *

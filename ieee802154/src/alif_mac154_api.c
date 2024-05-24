@@ -28,12 +28,18 @@
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 /*
- * Version number definition
+ * Initial Version number definition supported by default
  */
 
-#define VERS_MAJOR 1
-#define VERS_MINOR 0
-#define VERS_PATCH 0
+#define VERS_INIT_MAJOR   1
+#define VERS_INIT_MINOR   0
+#define VERS_INIT_PATCH   0
+/*
+ * Latest supported Link layer version
+ */
+#define VERS_LATEST_MAJOR 1
+#define VERS_LATEST_MINOR 1
+#define VERS_LATEST_PATCH 0
 
 #define VERSION(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
 /*
@@ -50,8 +56,10 @@ struct msg_buf ahi_msg;
 /* API Callback functions */
 struct alif_mac154_api_cb api_cb;
 
-uint32_t ll_hw_version;
-uint32_t ll_sw_version;
+/*Hardware capabilities*/
+static uint32_t ll_hw_version;
+static uint32_t ll_sw_version;
+static uint32_t hw_capabilities;
 
 void ahi_msg_received_callback(struct msg_buf *p_msg)
 {
@@ -100,6 +108,9 @@ void alif_mac154_init(struct alif_mac154_api_cb *p_api)
 {
 	LOG_INF("mac154_init()");
 
+	hw_capabilities = 0;
+	ll_hw_version = 0;
+	ll_sw_version = 0;
 	api_cb.rx_frame_recv_cb = p_api->rx_frame_recv_cb;
 	api_cb.rx_status_cb = p_api->rx_status_cb;
 	alif_ahi_init(ahi_msg_received_callback);
@@ -169,11 +180,26 @@ enum alif_mac154_status_code alif_mac154_version_get(uint8_t *p_major, uint8_t *
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		return ALIF_MAC154_STATUS_COMM_FAILURE;
 	}
-	*p_major = VERS_MAJOR;
-	*p_minor = VERS_MINOR;
-	*p_patch = VERS_PATCH;
+	if (ll_sw_version > 0x10006) {
+		*p_major = VERS_LATEST_MAJOR;
+		*p_minor = VERS_LATEST_MINOR;
+		*p_patch = VERS_LATEST_PATCH;
+		hw_capabilities |= ALIF_IEEE802154_MAC_RX_OPT;
+		hw_capabilities |= ALIF_IEEE802154_MAC_TXTIME;
+	} else {
+		/*Backward compatibility to 1.0.2 */
+		*p_major = VERS_INIT_MAJOR;
+		*p_minor = VERS_INIT_MINOR;
+		*p_patch = VERS_INIT_PATCH;
+	}
+
 	k_mutex_unlock(&api_mutex);
 	return ALIF_MAC154_STATUS_OK;
+}
+
+uint32_t alif_mac154_capabilities_get(void)
+{
+	return hw_capabilities;
 }
 
 enum alif_mac154_status_code alif_mac154_timestamp_get(uint64_t *p_timestamp)
