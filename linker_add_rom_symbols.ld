@@ -9,7 +9,7 @@
 #include <zephyr/linker/linker-defs.h>
 #include <zephyr/linker/linker-tool.h>
 
-#include <zephyr/arch/arm/aarch32/cortex_m/scripts/linker.ld>
+#include <zephyr/arch/arm/cortex_m/scripts/linker.ld>
 
 /* Symbols in ROM */
 #include "lc3/rom_symbols_lc3.lds"
