@@ -1,0 +1,3 @@
+zephyr_include_directories(include)
+
+add_subdirectory_ifdef(CONFIG_USE_ALIF_HAL_OSPI ospi)
