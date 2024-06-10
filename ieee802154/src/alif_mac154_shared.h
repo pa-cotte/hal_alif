@@ -31,7 +31,12 @@
 
 #define ALIF_MAC154_SHARED_CCA_MODE (*(volatile uint8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x300))
 
-#define ALIF_MAC154_SHARED_CCA_THR (*(volatile uint8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x304))
+#define ALIF_MAC154_SHARED_CCA_THR (*(volatile int8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x304))
+
+#define ALIF_MAC154_SHARED_CCA_MODE_1_1                                                            \
+	(*(volatile uint8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x3A0))
+
+#define ALIF_MAC154_SHARED_CCA_THR_1_1 (*(volatile int8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x3A4))
 
 #define ALIF_MAC154_SHARED_PENDINGS_SHORT_COUNT                                                    \
 	(*(volatile uint8_t *)(ALIF_MAC154_SHARED_BASE_ADDR + 0x1d))

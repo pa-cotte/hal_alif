@@ -115,6 +115,7 @@ void alif_ahi_msg_dbg_mem(struct msg_buf *p_msg, uint16_t ctx, uint8_t write, ui
 			  uint32_t value);
 void alif_ahi_msg_dbg_reg(struct msg_buf *p_msg, uint16_t ctx, uint8_t write, uint32_t address,
 			  uint32_t value);
+void alif_ahi_msg_csl_phase_get(struct msg_buf *p_msg, uint16_t ctx);
 
 enum alif_mac154_status_code alif_ahi_msg_status(struct msg_buf *p_msg, uint8_t *p_ctx);
 enum alif_mac154_status_code alif_ahi_msg_dbm(struct msg_buf *p_msg, uint8_t *p_ctx, int8_t *p_dbm);

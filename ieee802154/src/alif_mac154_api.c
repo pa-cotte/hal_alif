@@ -34,6 +34,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #define VERS_INIT_MAJOR   1
 #define VERS_INIT_MINOR   0
 #define VERS_INIT_PATCH   0
+
+#define MODULE_VERSION_INITIAL 0x10006
 /*
  * Latest supported Link layer version
  */
@@ -42,6 +44,9 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #define VERS_LATEST_PATCH 0
 
 #define VERSION(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
+
+#define MODULE_VERSION_1_1_0 0x10100
+
 /*
  * Static variables
  */
@@ -123,22 +128,21 @@ enum alif_mac154_status_code alif_mac154_reset(void)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("");
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_reset(&ahi_msg, 0);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
 
+	k_mutex_unlock(&api_mutex);
+
 	if (ret != ALIF_MAC154_STATUS_OK) {
-		LOG_WRN("rx stop failed %x", ret);
+		LOG_WRN("reset failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -148,11 +152,8 @@ static enum alif_mac154_status_code alif_mac154_ll_version_get(uint32_t *p_hw_ve
 	enum alif_mac154_status_code ret;
 
 	alif_ahi_msg_version_get(&ahi_msg, 0);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_version(&ahi_msg, NULL, p_hw_version, p_sw_version);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
@@ -180,7 +181,7 @@ enum alif_mac154_status_code alif_mac154_version_get(uint8_t *p_major, uint8_t *
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		return ALIF_MAC154_STATUS_COMM_FAILURE;
 	}
-	if (ll_sw_version > 0x10006) {
+	if (ll_sw_version > MODULE_VERSION_INITIAL) {
 		*p_major = VERS_LATEST_MAJOR;
 		*p_minor = VERS_LATEST_MINOR;
 		*p_patch = VERS_LATEST_PATCH;
@@ -206,22 +207,20 @@ enum alif_mac154_status_code alif_mac154_timestamp_get(uint64_t *p_timestamp)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("");
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_timestamp_get(&ahi_msg, 0);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_timestamp(&ahi_msg, NULL, p_timestamp);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("timestamp get failed %x", ret);
 	}
-
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -230,16 +229,15 @@ enum alif_mac154_status_code alif_mac154_transmit(struct alif_tx_req *p_tx,
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("ch:%d, cca:%d, ack:%d, len:%d", p_tx->channel, p_tx->cca_requested,
 		p_tx->acknowledgment_asked, p_tx->length);
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
 
 	alif_ahi_msg_tx_start(&ahi_msg, p_tx->msg_id, p_tx->channel, p_tx->cca_requested,
 			      p_tx->acknowledgment_asked, p_tx->timestamp, p_tx->p_payload,
 			      p_tx->length);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
 
 	if (ll_sw_version >= VERSION(1, 1, 0)) {
@@ -260,21 +258,20 @@ enum alif_mac154_status_code alif_mac154_receive_start(struct alif_rx_enable *p_
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("ch:%d ts:%d", p_rx->channel, p_rx->timestamp);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_rx_start(&ahi_msg, 0, p_rx->channel, false, p_rx->frames, p_rx->timestamp);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_rx_start_resp(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("rx start failed %x", ret);
 	}
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -282,22 +279,21 @@ enum alif_mac154_status_code alif_mac154_receive_stop(void)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("");
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_rx_stop(&ahi_msg, 0);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("rx stop failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -307,25 +303,24 @@ alif_mac154_energy_detection(struct alif_energy_detect *p_energy_measure,
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("ch:%d thr:%d", p_energy_measure->channel, p_energy_measure->threshold);
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
 
 	alif_ahi_msg_ed_start(&ahi_msg, 0, p_energy_measure->channel, p_energy_measure->threshold,
 			      p_energy_measure->nb_tics, p_energy_measure->timestamp);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_energy_detect_resp(&ahi_msg, NULL, &p_energy_measure_result->nb_measure,
 					      &p_energy_measure_result->average,
 					      &p_energy_measure_result->max);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("energy detect failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -333,22 +328,21 @@ enum alif_mac154_status_code alif_mac154_short_address_set(uint16_t short_addres
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("%x", short_address);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_short_id_set(&ahi_msg, 0, short_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("short address set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -356,26 +350,24 @@ enum alif_mac154_status_code alif_mac154_extended_address_set(uint8_t *p_extende
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
-
 	LOG_DBG("0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x", p_extended_address[7],
 		p_extended_address[6], p_extended_address[5], p_extended_address[4],
 		p_extended_address[3], p_extended_address[2], p_extended_address[1],
 		p_extended_address[0]);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_long_id_set(&ahi_msg, 0, p_extended_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("ext address set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -383,22 +375,21 @@ enum alif_mac154_status_code alif_mac154_pan_id_set(uint16_t pan_id)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("0x%x", pan_id);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_pan_id_set(&ahi_msg, 0, pan_id);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("pan id set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -406,22 +397,21 @@ enum alif_mac154_status_code alif_mac154_pendings_short_address_insert(uint16_t 
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("0x%x", short_address);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_pending_short_id_insert(&ahi_msg, 0, short_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("pending short address set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -429,22 +419,21 @@ enum alif_mac154_status_code alif_mac154_pendings_short_address_remove(uint16_t 
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("0x%x", short_address);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_pending_short_id_remove(&ahi_msg, 0, short_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("pending short address remove failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -453,7 +442,6 @@ enum alif_mac154_status_code alif_mac154_pendings_long_address_insert(uint8_t *p
 	enum alif_mac154_status_code ret;
 	uint8_t tmp[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	if (!p_extended_address) {
 		p_extended_address = tmp;
 	}
@@ -462,19 +450,19 @@ enum alif_mac154_status_code alif_mac154_pendings_long_address_insert(uint8_t *p
 		p_extended_address[3], p_extended_address[2], p_extended_address[1],
 		p_extended_address[0]);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_pending_long_id_insert(&ahi_msg, 0, p_extended_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("pending short address set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -486,25 +474,24 @@ enum alif_mac154_status_code alif_mac154_pendings_long_address_remove(uint8_t *p
 		return ALIF_MAC154_STATUS_FAILED;
 	}
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x", p_extended_address[7],
 		p_extended_address[6], p_extended_address[5], p_extended_address[4],
 		p_extended_address[3], p_extended_address[2], p_extended_address[1],
 		p_extended_address[0]);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_pending_long_id_remove(&ahi_msg, 0, p_extended_address);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("pending long address remove failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -512,22 +499,21 @@ enum alif_mac154_status_code alif_mac154_promiscious_mode_set(bool promiscuous_m
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("mode:%d", promiscuous_mode);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_promiscuous_set(&ahi_msg, 0, promiscuous_mode);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("cca mode set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -535,22 +521,21 @@ enum alif_mac154_status_code alif_mac154_tx_power_set(int16_t dbm)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("dbm:%d", dbm);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_max_tx_power_set(&ahi_msg, 0, dbm);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("tx power set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -558,22 +543,21 @@ enum alif_mac154_status_code alif_mac154_cca_mode_set(enum alif_mac154_cca_mode 
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("mode:%d", mode);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_cca_mode_set(&ahi_msg, 0, mode);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("cca mode set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -581,22 +565,21 @@ enum alif_mac154_status_code alif_mac154_ed_threshold_set(int8_t input)
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("thr:%d", input);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_ed_threshold_set(&ahi_msg, 0, input);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("ed threshold set failed %x", ret);
 	}
 
-	k_mutex_unlock(&api_mutex);
 	return ret;
 }
 
@@ -605,22 +588,198 @@ enum alif_mac154_status_code alif_mac154_dbg_rf(uint8_t write, uint32_t key, uin
 {
 	enum alif_mac154_status_code ret;
 
-	k_mutex_lock(&api_mutex, K_FOREVER);
 	LOG_DBG("key:%d value:%x", key, value);
 
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
 	alif_ahi_msg_dbg_rf(&ahi_msg, 0, write, key, value);
-
 	alif_ahi_msg_send(&ahi_msg, NULL, 0);
-
 	alif_hal_msg_wait(&ahi_msg);
-
 	ret = alif_ahi_msg_rf_dbg_resp(&ahi_msg, NULL, p_read);
+
+	k_mutex_unlock(&api_mutex);
 
 	if (ret != ALIF_MAC154_STATUS_OK) {
 		LOG_WRN("RF dbg set failed %x", ret);
 	}
 
+	return ret;
+}
+
+enum alif_mac154_status_code alif_mac154_csl_config_set(struct alif_mac154_csl_config *p_csl_config)
+{
+	enum alif_mac154_status_code ret;
+
+	LOG_DBG("period:0x%x", p_csl_config->csl_period);
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
+	alif_ahi_msg_csl_period_set(&ahi_msg, 0, p_csl_config->csl_period);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+	ret = alif_ahi_msg_status(&ahi_msg, NULL);
+
 	k_mutex_unlock(&api_mutex);
+
+	if (ret != ALIF_MAC154_STATUS_OK) {
+		LOG_WRN("csl period set failed %x", ret);
+	}
+
+	return ret;
+}
+
+enum alif_mac154_status_code alif_mac154_rx_slot_set(struct alif_mac154_rx_slot *p_rx_slot_config)
+{
+	enum alif_mac154_status_code ret;
+
+	LOG_DBG("start: %d duration: %d channel: %d", p_rx_slot_config->start,
+		p_rx_slot_config->duration, p_rx_slot_config->channel);
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
+	alif_ahi_msg_config_rx_slot(&ahi_msg, 0, p_rx_slot_config->start,
+				    p_rx_slot_config->duration, p_rx_slot_config->channel);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+	ret = alif_ahi_msg_config_rx_slot_resp(&ahi_msg, NULL);
+
+	k_mutex_unlock(&api_mutex);
+
+	if (ret != ALIF_MAC154_STATUS_OK) {
+		LOG_WRN("rx slot set failed %x", ret);
+	}
+
+	return ret;
+}
+
+enum alif_mac154_status_code
+alif_mac154_csl_phase_get(struct alif_mac154_csl_phase *p_csl_phase_resp)
+{
+	enum alif_mac154_status_code ret;
+
+	LOG_DBG("");
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
+	alif_ahi_msg_csl_phase_get(&ahi_msg, 0);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+	ret = alif_ahi_msg_csl_phase_resp(&ahi_msg, NULL, &p_csl_phase_resp->timestamp,
+					  &p_csl_phase_resp->csl_phase);
+
+	k_mutex_unlock(&api_mutex);
+
+	if (ret != ALIF_MAC154_STATUS_OK) {
+		LOG_WRN("csl phase get failed %x", ret);
+	}
+
+	return ret;
+}
+
+static enum alif_mac154_status_code
+alif_mac154_csl_long_id_insert(const uint8_t *p_extended_address)
+{
+	LOG_HEXDUMP_DBG(p_extended_address, 8, "long_id_insert addr:");
+
+	alif_ahi_msg_csl_long_id_insert(&ahi_msg, 0, (uint8_t *)p_extended_address);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+
+	return alif_ahi_msg_status(&ahi_msg, NULL);
+}
+
+static enum alif_mac154_status_code
+alif_mac154_csl_long_id_remove(const uint8_t *p_extended_address)
+{
+	LOG_HEXDUMP_DBG(p_extended_address, 8, "long_id_remove addr:");
+
+	alif_ahi_msg_csl_long_id_remove(&ahi_msg, 0, (uint8_t *)p_extended_address);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+
+	return alif_ahi_msg_status(&ahi_msg, NULL);
+}
+
+static enum alif_mac154_status_code alif_mac154_csl_short_id_insert(uint16_t short_address)
+{
+	LOG_DBG("0x%x", short_address);
+
+	alif_ahi_msg_csl_short_id_insert(&ahi_msg, 0, short_address);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+
+	return alif_ahi_msg_status(&ahi_msg, NULL);
+}
+
+static enum alif_mac154_status_code alif_mac154_csl_short_id_remove(uint16_t short_address)
+{
+	LOG_DBG("0x%x", short_address);
+
+	alif_ahi_msg_csl_short_id_remove(&ahi_msg, 0, short_address);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+
+	return alif_ahi_msg_status(&ahi_msg, NULL);
+}
+
+static enum alif_mac154_status_code alif_mac154_csl_header_ie_csl_reduced(uint16_t csl_period,
+									  uint16_t csl_phase)
+{
+	LOG_DBG("period:%d, phase: %d", csl_period, csl_phase);
+
+	alif_ahi_msg_config_header_ie_csl_reduced(&ahi_msg, 0, csl_period, csl_phase);
+	alif_ahi_msg_send(&ahi_msg, NULL, 0);
+	alif_hal_msg_wait(&ahi_msg);
+
+	return alif_ahi_msg_status(&ahi_msg, NULL);
+}
+
+enum alif_mac154_status_code
+alif_mac154_ack_header_ie_set(uint16_t short_address, const uint8_t *p_extended_address,
+			      bool delete_all_ie, const struct ieee802154_header_ie *p_header_ie)
+{
+	enum alif_mac154_status_code ret;
+
+	LOG_DBG("");
+
+	k_mutex_lock(&api_mutex, K_FOREVER);
+
+	if (delete_all_ie) {
+		/*Delete all CSL configurations*/
+		uint8_t ext_addr_all[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+		alif_mac154_csl_short_id_insert(0xffff);
+		alif_mac154_csl_long_id_insert(ext_addr_all);
+		ret = ALIF_MAC154_STATUS_OK;
+		goto end;
+	}
+
+	if (!p_header_ie) {
+		/*Delete IE headers for this device*/
+		alif_mac154_csl_short_id_remove(short_address);
+		alif_mac154_csl_long_id_remove(p_extended_address);
+		ret = ALIF_MAC154_STATUS_OK;
+		goto end;
+	}
+
+	if (ieee802154_header_ie_get_element_id((struct ieee802154_header_ie *)p_header_ie) !=
+	    IEEE802154_HEADER_IE_ELEMENT_ID_CSL_IE) {
+		ret = ALIF_MAC154_STATUS_INVALID_MESSAGE;
+		goto end;
+	}
+	/*Set the addresses*/
+	alif_mac154_csl_short_id_insert(short_address);
+	alif_mac154_csl_long_id_insert(p_extended_address);
+
+	ret = alif_mac154_csl_header_ie_csl_reduced(p_header_ie->content.csl.reduced.csl_period,
+						    p_header_ie->content.csl.reduced.csl_phase);
+
+end:
+	k_mutex_unlock(&api_mutex);
+
+	if (ret != ALIF_MAC154_STATUS_OK) {
+		LOG_WRN("ACK header IE set failed %x", ret);
+	}
 	return ret;
 }
 
@@ -673,10 +832,16 @@ uint8_t alif_mac154_get_priority_ed(void)
 
 enum alif_mac154_cca_mode alif_mac154_get_cca_mode(void)
 {
+	if (ll_sw_version > MODULE_VERSION_INITIAL) {
+		return ALIF_MAC154_SHARED_CCA_MODE_1_1;
+	}
 	return ALIF_MAC154_SHARED_CCA_MODE;
 }
 
-uint8_t alif_mac154_get_cca_threshold(void)
+int8_t alif_mac154_get_cca_threshold(void)
 {
+	if (ll_sw_version > MODULE_VERSION_INITIAL) {
+		return ALIF_MAC154_SHARED_CCA_THR_1_1;
+	}
 	return ALIF_MAC154_SHARED_CCA_THR;
 }

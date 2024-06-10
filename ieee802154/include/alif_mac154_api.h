@@ -8,6 +8,7 @@
 #define ALIF_MAC154_API_H_
 
 #include "alif_mac154_def.h"
+#include <zephyr/net/ieee802154_ie.h>
 
 /**
  * Maximum ACK Frame size
@@ -28,10 +29,13 @@
  *	RX can be kept on during transmissions and does not need to be
  *	stopped and started
  *
+ * ALIF_IEEE802154_MAC_RXTIME
+ *	Support CSL Slot configurations and timed RX operations.
  */
 #define ALIF_IEEE802154_MAC_TXTIME BIT(1)
 #define ALIF_IEEE802154_MAC_TX_SEC BIT(2)
 #define ALIF_IEEE802154_MAC_RX_OPT BIT(3)
+#define ALIF_IEEE802154_MAC_RXTIME BIT(4)
 
 /**
  * @brief Transmission request parameters
@@ -101,6 +105,34 @@ struct alif_energy_detect_response {
 	uint8_t nb_measure;
 	uint8_t average;
 	int8_t max;
+};
+
+/**
+ * @brief CSL configuration parameters
+ *
+ */
+struct alif_mac154_csl_config {
+	uint16_t csl_period;
+};
+
+/**
+ * @brief Configure RX SLOT
+ *
+ */
+struct alif_mac154_rx_slot {
+	uint32_t expected_rx_time;
+	uint32_t start;
+	uint16_t duration;
+	uint8_t channel;
+};
+
+/**
+ * @brief current CSL phase parameters
+ *
+ */
+struct alif_mac154_csl_phase {
+	uint64_t timestamp;
+	uint16_t csl_phase;
 };
 
 /**
@@ -355,6 +387,47 @@ enum alif_mac154_status_code alif_mac154_dbg_rf(uint8_t write, uint32_t key, uin
 						uint32_t *p_read);
 
 /**
+ * @brief Set the csl period and enable the CSL receiver mode
+ *
+ * @return	ALIF_MAC154_STATUS_OK		Operation OK
+ *		ALIF_MAC154_STATUS_FAILED	Operation failed
+ *		ALIF_MAC154_STATUS_COMM_FAILURE	Module not connected
+ */
+enum alif_mac154_status_code
+alif_mac154_csl_config_set(struct alif_mac154_csl_config *p_csl_config);
+
+/**
+ * @brief Set RX slot for receiver
+ *
+ * @return	ALIF_MAC154_STATUS_OK		Operation OK
+ *		ALIF_MAC154_STATUS_FAILED	Operation failed
+ *		ALIF_MAC154_STATUS_COMM_FAILURE	Module not connected
+ */
+enum alif_mac154_status_code alif_mac154_rx_slot_set(struct alif_mac154_rx_slot *p_rx_slot_config);
+
+/**
+ * @brief get current CSL phase and timestamp when that was calculated.
+ *
+ * @return	ALIF_MAC154_STATUS_OK		Operation OK
+ *		ALIF_MAC154_STATUS_FAILED	Operation failed
+ *		ALIF_MAC154_STATUS_COMM_FAILURE	Module not connected
+ */
+enum alif_mac154_status_code
+alif_mac154_csl_phase_get(struct alif_mac154_csl_phase *p_csl_phase_resp);
+
+/**
+ * @brief Set enhanced ACK IE elements.
+ * supports:IEEE802154_HEADER_IE_ELEMENT_ID_CSL_IE
+ *
+ * @return	ALIF_MAC154_STATUS_OK		Operation OK
+ *		ALIF_MAC154_STATUS_FAILED	Operation failed
+ *		ALIF_MAC154_STATUS_COMM_FAILURE	Module not connected
+ */
+enum alif_mac154_status_code
+alif_mac154_ack_header_ie_set(uint16_t short_address, const uint8_t *p_extended_address,
+			      bool delete_ie, const struct ieee802154_header_ie *p_header_ie);
+
+/**
  * @brief Get promiscuous mode configuration
  *
  * @return	true/false
@@ -429,6 +502,6 @@ enum alif_mac154_cca_mode alif_mac154_get_cca_mode(void);
  *
  * @return	cca threshold in dbm
  */
-uint8_t alif_mac154_get_cca_threshold(void);
+int8_t alif_mac154_get_cca_threshold(void);
 
 #endif /* ALIF_MAC154_API_H_ */
