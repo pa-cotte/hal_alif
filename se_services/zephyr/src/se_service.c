@@ -102,8 +102,8 @@ static uart_write_svc_t uart_write_svc_d;
 static ospi_write_key_svc_t ospi_write_key_svc_d;
 static dmpu_svc_t dmpu_svc_d;
 static get_toc_version_svc_t get_toc_version_svc_d;
-static get_toc_via_name_svc_t get_toc_via_name_svc_d;
-static get_toc_via_cpu_id_svc_t get_toc_via_cpu_id_svc_d;
+static get_toc_via_name_t get_toc_via_name_d;
+static get_toc_via_cpuid_t get_toc_via_cpuid_d;
 static get_toc_entry_t get_toc_entry;
 static get_toc_data_t get_toc_data;
 static get_otp_data_t get_otp_data;
@@ -862,10 +862,6 @@ int se_service_get_run_cfg(run_profile_t *pp)
 	pp->phy_pwr_gating = se_service_all_svc_d.get_run_d.resp_phy_pwr_gating;
 	pp->power_domains = se_service_all_svc_d.get_run_d.resp_power_domains;
 	pp->vdd_ioflex_3V3 = se_service_all_svc_d.get_run_d.resp_vdd_ioflex_3V3;
-	pp->wakeup_events = se_service_all_svc_d.get_run_d.resp_wakeup_events;
-	pp->ewic_cfg = se_service_all_svc_d.get_run_d.resp_ewic_cfg;
-	pp->vtor_address = se_service_all_svc_d.get_run_d.resp_vtor_address;
-	pp->vtor_address_ns = se_service_all_svc_d.get_run_d.resp_vtor_address_ns;
 	k_mutex_unlock(&svc_mutex);
 
 	return 0;
@@ -893,10 +889,6 @@ int se_service_set_run_cfg(run_profile_t *pp)
 	se_service_all_svc_d.set_run_d.send_phy_pwr_gating = pp->phy_pwr_gating;
 	se_service_all_svc_d.set_run_d.send_power_domains = pp->power_domains;
 	se_service_all_svc_d.set_run_d.send_vdd_ioflex_3V3 = pp->vdd_ioflex_3V3;
-	se_service_all_svc_d.set_run_d.send_wakeup_events = pp->wakeup_events;
-	se_service_all_svc_d.set_run_d.send_ewic_cfg = pp->ewic_cfg;
-	se_service_all_svc_d.set_run_d.send_vtor_address = pp->vtor_address;
-	se_service_all_svc_d.set_run_d.send_vtor_address_ns = pp->vtor_address_ns;
 
 	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_run_d,
 			     sizeof(se_service_all_svc_d.set_run_d), SERVICE_TIMEOUT);
@@ -946,7 +938,6 @@ int se_service_get_off_cfg(off_profile_t *wp)
 	wp->aon_clk_src = se_service_all_svc_d.get_off_d.resp_aon_clk_src;
 	wp->stby_clk_src = se_service_all_svc_d.get_off_d.resp_stby_clk_src;
 	wp->stby_clk_freq = se_service_all_svc_d.get_off_d.resp_stby_clk_freq;
-	wp->sysref_clk_src = 0; /* currently unused */
 	wp->ip_clock_gating = se_service_all_svc_d.get_off_d.resp_ip_clock_gating;
 	wp->phy_pwr_gating = se_service_all_svc_d.get_off_d.resp_phy_pwr_gating;
 	wp->vdd_ioflex_3V3 = se_service_all_svc_d.get_off_d.resp_vdd_ioflex_3V3;
@@ -975,7 +966,7 @@ int se_service_set_off_cfg(off_profile_t *wp)
 	se_service_all_svc_d.set_off_d.send_stby_clk_src = wp->stby_clk_src;
 	se_service_all_svc_d.set_off_d.send_stby_clk_freq = wp->stby_clk_freq;
 	se_service_all_svc_d.set_off_d.send_ip_clock_gating = wp->ip_clock_gating;
-	se_service_all_svc_d.set_off_d.send_phy_pwr_gating = wp->phy_pwr_gating; /*typedef */
+	se_service_all_svc_d.set_off_d.send_phy_pwr_gating = wp->phy_pwr_gating;
 	se_service_all_svc_d.set_off_d.send_vdd_ioflex_3V3 = wp->vdd_ioflex_3V3;
 	se_service_all_svc_d.set_off_d.send_vtor_address = wp->vtor_address;
 	se_service_all_svc_d.set_off_d.send_vtor_address_ns = wp->vtor_address_ns;
