@@ -54,6 +54,7 @@ static struct k_thread ble_thread;
 
 static K_SEM_DEFINE(rwip_schedule_sem, 0, 1);
 static K_SEM_DEFINE(rwip_init_sem, 0, 1);
+static K_MUTEX_DEFINE(rwip_process_mutex);
 
 static int irq_key;
 
@@ -134,6 +135,16 @@ static ble_app_hooks_t app_hooks = {.p_global_int_disable = global_int_stop,
 				    .p_sync_timer_disable_evts = sync_timer_disable_evts,
 				    .p_sync_timer_restore_evts = sync_timer_restore_evts};
 
+int alif_ble_mutex_lock(k_timeout_t timeout)
+{
+	return k_mutex_lock(&rwip_process_mutex, timeout);
+}
+
+void alif_ble_mutex_unlock(void)
+{
+	k_mutex_unlock(&rwip_process_mutex);
+}
+
 static void ble_task(void *dummy1, void *dummy2, void *dummy3)
 {
 	int ret = hci_uart_init();
@@ -159,7 +170,9 @@ static void ble_task(void *dummy1, void *dummy2, void *dummy3)
 		k_sem_take(&rwip_schedule_sem, K_FOREVER);
 		LOG_DBG("task received event");
 
+		alif_ble_mutex_lock(K_FOREVER);
 		rwip_process();
+		alif_ble_mutex_unlock();
 	}
 }
 
