@@ -20,14 +20,7 @@ config ALIF_BLE_HOST_PATCH_FILE
 
 config ALIF_BLE_HOST_THREAD_PRIORITY
 	int "Priority for thread running the BLE host stack"
-	default MAIN_THREAD_PRIORITY
-	help
-	  Set the thread priority for the BLE host stack thread.
-	  The ROM host stack is not thread-safe, so calls to ROM
-	  APIs should be performed from a thread with the same
-	  priority as the host stack thread. This defaults to the
-	  same priority as the main thread so that host stack APIs
-	  can be called from main().
+	default 5
 
 config ALIF_BLE_HOST_THREAD_STACKSIZE
 	int "Stack size for thread running the BLE host stack"
