@@ -25,6 +25,8 @@ int se_service_get_run_cfg(run_profile_t *pp);
 int se_service_set_run_cfg(run_profile_t *pp);
 int se_service_get_off_cfg(off_profile_t *wp);
 int se_service_set_off_cfg(off_profile_t *wp);
+int se_service_boot_reset_soc(void);
+int se_service_boot_reset_cpu(uint32_t cpu_id);
 
 #ifdef __cplusplus
 }

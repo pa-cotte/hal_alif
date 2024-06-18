@@ -69,7 +69,7 @@ typedef union {
 	aipm_set_run_profile_svc_t set_run_d;
 	aipm_set_off_profile_svc_t set_off_d;
 	aipm_get_off_profile_svc_t get_off_d;
-
+	control_cpu_svc_t cpu_reboot_d;
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
@@ -1026,6 +1026,73 @@ int se_service_system_set_services_debug(bool debug_enable)
 		return resp_err;
 	}
 
+	return 0;
+}
+
+int se_service_boot_reset_soc(void)
+{
+	int err, i = 0;
+
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.service_header.hdr_service_id =
+					SERVICE_BOOT_RESET_SOC;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	while (i < MAX_TRIES) {
+		err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.service_header,
+			sizeof(se_service_all_svc_d.service_header),
+			SERVICE_TIMEOUT);
+		if (!err)
+			break;
+		/* SE service timed out. Increment count */
+		++i;
+	}
+	k_mutex_unlock(&svc_mutex);
+	if (i >= MAX_TRIES) {
+		LOG_ERR("Failed to soc reset SoC with SE (errno =%d)\n", err);
+		return err;
+	}
+	return 0;
+}
+
+int se_service_boot_reset_cpu(uint32_t cpu_id)
+{
+	int err, i = 0, resp_err = -1;
+
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.cpu_reboot_d.header.hdr_service_id =
+					SERVICE_BOOT_RESET_CPU;
+
+	se_service_all_svc_d.cpu_reboot_d.send_cpu_id = cpu_id;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	while (i < MAX_TRIES) {
+		err = send_msg_to_se((uint32_t *)
+			&se_service_all_svc_d.service_header,
+			sizeof(se_service_all_svc_d.service_header),
+			SERVICE_TIMEOUT);
+		if (!err)
+			break;
+		/* SE service timed out. Increment count */
+		++i;
+	}
+	resp_err = se_service_all_svc_d.cpu_reboot_d.resp_error_code;
+	k_mutex_unlock(&svc_mutex);
+	if (i >= MAX_TRIES) {
+		LOG_ERR("Failed to soc reset cpu with SE (errno =%d)\n", err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("received response error = %d\n", resp_err);
+		return resp_err;
+	}
 	return 0;
 }
 
