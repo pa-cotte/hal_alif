@@ -349,7 +349,8 @@ typedef struct {
 } net_proc_boot_args_t;
 
 typedef enum {
-	POWER_SETTING_BOR_EN
+	POWER_SETTING_BOR_EN,
+	POWER_SETTING_SCALED_CLK_FREQ
 } power_setting_t;
 
 /*******************************************************************************
