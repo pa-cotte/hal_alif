@@ -35,7 +35,7 @@ def zephyr_init() {
 	    ls -la
 
 	    # rm -rf zephyrproject
-	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west init zephyrproject -m org-115832732@github.com:AlifSemiDev/sdk-alif.git
+	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west init zephyrproject -m https://github.com/alifsemi/sdk-alif.git
 
             cd zephyrproject/
 
