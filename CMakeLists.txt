@@ -1,6 +1,6 @@
 
 add_subdirectory(common)
-add_subdirectory(driver)
+add_subdirectory(drivers)
 
 add_subdirectory_ifdef(CONFIG_HAS_ALIF_SE_SERVICES se_services)
 
