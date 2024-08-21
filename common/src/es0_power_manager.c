@@ -89,6 +89,12 @@ int8_t take_es0_into_use(void)
 	if (255 == es0_user_counter) {
 		return -1;
 	}
+
+	if (es0_user_counter == 0) {
+		/* Shuttdown is needed if riscv was already active */
+		se_service_shutdown_es0();
+	}
+
 	static uint8_t ll_boot_params_buffer[LL_BOOT_PARAMS_MAX_SIZE];
 
 	memset(ll_boot_params_buffer, 0xFF, LL_BOOT_PARAMS_MAX_SIZE);
