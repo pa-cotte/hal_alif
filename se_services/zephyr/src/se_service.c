@@ -127,6 +127,7 @@ static pll_clkpll_start_svc_t pll_clkpll_start_svc_d;
 #endif
 
 static uint32_t global_address;
+static uint32_t se_service_recv_data;
 
 /**
  * @brief Callback API to make sure MHUv2 messages are received.
@@ -1104,7 +1105,7 @@ static int se_service_mhuv2_nodes_init(void)
 		printk("MHU devices not ready\n");
 		return -ENODEV;
 	}
-	mhuv2_ipm_rb(recv_dev, callback_for_receive_msg, NULL);
+	mhuv2_ipm_rb(recv_dev, callback_for_receive_msg, &se_service_recv_data);
 	mhuv2_ipm_rb(send_dev, callback_for_send_msg, NULL);
 	return 0;
 }
