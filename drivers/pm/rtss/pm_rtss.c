@@ -117,7 +117,7 @@ static uint32_t pm_prepare_lpgpio_nvic_mask(void)
 	 */
 
 	uint32_t lpgpio_enables = NVIC->ISER[LPGPIO_IRQ0_IRQn >> 5]
-									>> (LPGPIO_IRQ0_IRQn & 0x1F);
+								>> (LPGPIO_IRQ0_IRQn & 0x1F);
 
 	/*
 	 * If split across two registers, combine enables
@@ -125,7 +125,7 @@ static uint32_t pm_prepare_lpgpio_nvic_mask(void)
 	 */
 	if ((LPGPIO_IRQ0_IRQn & 0x1F) > 24) {
 		lpgpio_enables |= NVIC->ISER[(LPGPIO_IRQ0_IRQn >> 5) + 1]
-									<< (32 - (LPGPIO_IRQ0_IRQn & 0x1F));
+							<< (32 - (LPGPIO_IRQ0_IRQn & 0x1F));
 	}
 
 	lpgpio_enables &= 0xFF;
