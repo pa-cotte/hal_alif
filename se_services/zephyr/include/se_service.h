@@ -12,10 +12,10 @@ extern "C" {
 int se_service_heartbeat(void);
 int se_service_sync(void);
 int se_service_system_set_services_debug(bool debug_enable);
-int se_service_get_rnd_num(uint8_t *,uint16_t);
-int se_service_get_toc_number(uint32_t *);
-int se_service_get_se_revision(uint8_t *);
-int se_service_get_device_part_number(uint32_t *);
+int se_service_get_rnd_num(uint8_t *buffer, uint16_t length);
+int se_service_get_toc_number(uint32_t *ptoc);
+int se_service_get_se_revision(uint8_t *prev);
+int se_service_get_device_part_number(uint32_t *pdev_part);
 int se_service_system_get_device_data(get_device_revision_data_t *pdev_data);
 int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension);
 

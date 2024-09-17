@@ -80,10 +80,10 @@ extern "C" {
 /**
  * Boot services error codes (returned by SERVICES_boot_process_toc_entry())
  */
-#define BOOT_OK                                    0x00 // BL_STATUS_OK
-#define BOOT_ERROR_INVALID_TOC                     0x12 // BL_ERROR_INVALID_TOC
-#define BOOT_ERROR_INVALID_TOC_ENTRY_ID            0x15 // BL_ERROR_INVALID_TOC_ENTRY_ID
-#define BOOT_ERROR_INVALID_TOC_CPU_ID              0x16 // BL_ERROR_INVALID_TOC_CPU_ID
+#define BOOT_OK                                    0x00 /* BL_STATUS_OK */
+#define BOOT_ERROR_INVALID_TOC                     0x12 /* BL_ERROR_INVALID_TOC */
+#define BOOT_ERROR_INVALID_TOC_ENTRY_ID            0x15 /* BL_ERROR_INVALID_TOC_ENTRY_ID */
+#define BOOT_ERROR_INVALID_TOC_CPU_ID              0x16 /* BL_ERROR_INVALID_TOC_CPU_ID */
 
 /**
  * OTP Offsets
@@ -160,28 +160,28 @@ extern "C" {
 /*
  * Host CPU Cluster Power Request HOST_CPU_CLUS_PWR_REQ
  */
-// MEM_RET_REQ
+/* MEM_RET_REQ */
 #define MEM_RET_REQ_LAST_LEVEL_CACHE_RET_OFF   0x0
 #define MEM_RET_REQ_LAST_LEVEL_CACHE_RET_ON    0x1
-// PWR_REQ
+/* PWR_REQ */
 #define PWR_REQ_CLUSTOP_LOW_POWER_ON           0x0
 #define PWR_REQ_CLUSTOP_FUNC_RET_ON            0x1
 
 /*
  * Base System Power Request BSYS_PWR_REQ
  */
-// SYSTOP_PWR_REQ
+/* SYSTOP_PWR_REQ */
 #define SYSTOP_PWR_REQ_LOGIC_OFF_MEM_OFF       0x0
 #define SYSTOP_PWR_REQ_LOGIC_OFF_MEM_RET       0x1
 #define SYSTOP_PWR_REQ_LOGIC_ON_MEM_ON_OR_RET  0x2
 #define SYSTOP_PWR_REQ_LOGIC_ON_MEM_ON         0x4
-// DBGTOP_PWR_REQ
+/* DBGTOP_PWR_REQ */
 #define DBGTOP_PWR_REQ_OFF                     0x0
 #define DBGTOP_PWR_REQ_ON                      0x1
-// REFCLK_REQ
+/* REFCLK_REQ */
 #define REFCLK_REQ_OFF                         0x0
 #define REFCLK_REQ_ON                          0x1
-// WAKEUP_EN
+/* WAKEUP_EN */
 #define WAKEUP_EN_SE_OFF                       0x0
 #define WAKEUP_EN_SE_ON                        0x1
 
@@ -204,7 +204,7 @@ extern "C" {
    */
 #define SYSTOP_LOGIC_OFF_POWER_OFF             0x0
 #define SYSTOP_LOGIC_OFF_RETENTION_ON          0x1
-#define SYSTOP_LOGIC_ON_POWER_X_RET_X          0x2 // can be powered/retained
+#define SYSTOP_LOGIC_ON_POWER_X_RET_X          0x2 /* can be powered/retained */
 #define SYSTOP_LOGIC_ON_POWER_ON               0x4
 
 /*******************************************************************************
@@ -277,22 +277,22 @@ typedef enum {
  * Clocks Services definitions
  */
 
-// Oscillator clock selectors
+/* Oscillator clock selectors */
 typedef enum {
-	OSCILLATOR_SOURCE_RC,    // use RC as oscillator clock
-	OSCILLATOR_SOURCE_XTAL   // use XTAL  as oscillator clock
+	OSCILLATOR_SOURCE_RC,    /* use RC as oscillator clock */
+	OSCILLATOR_SOURCE_XTAL   /* use XTAL  as oscillator clock */
 } oscillator_source_t;
 
 typedef enum {
-	OSCILLATOR_TARGET_SYS_CLOCKS,    // various system clocks
-	OSCILLATOR_TARGET_PERIPH_CLOCKS, // clock for peripherrals
-	OSCILLATOR_TARGET_S32K_CLOCK     // 32K low frequency clock
+	OSCILLATOR_TARGET_SYS_CLOCKS,    /* various system clocks */
+	OSCILLATOR_TARGET_PERIPH_CLOCKS, /* clock for peripherrals */
+	OSCILLATOR_TARGET_S32K_CLOCK     /* 32K low frequency clock */
 } oscillator_target_t;
 
-// PLL clock selectors
+/* PLL clock selectors */
 typedef enum {
-	PLL_SOURCE_PLL,  // use the PLL clocks
-	PLL_SOURCE_OSC   // use the OCS clocks (can be RC or XTAL)
+	PLL_SOURCE_PLL,  /* use the PLL clocks */
+	PLL_SOURCE_OSC   /* use the OCS clocks (can be RC or XTAL) */
 } pll_source_t;
 
 typedef enum {
@@ -361,14 +361,14 @@ typedef enum {
  *  F U N C T I O N   P R O T O T Y P E S
  ******************************************************************************/
 
-// Services infrastructure APIs
+/* Services infrastructure APIs */
 uint32_t SERVICES_register_channel(uint32_t mhu_id, uint32_t channel_number);
 void SERVICES_unregister_channel(uint32_t mhu_id, uint32_t channel_number);
 
 const char *SERVICES_version(void);
 char *SERVICES_error_to_string(uint32_t error_code);
 
-// Services functional APIs
+/* Services functional APIs */
 uint32_t SERVICES_heartbeat(uint32_t services_handle);
 uint32_t SERVICES_uart_write(uint32_t services_handle, size_t size, const uint8_t *uart_data);
 uint32_t SERVICES_pinmux(uint32_t services_handle, uint8_t port_number, uint8_t pin_number,
@@ -391,7 +391,7 @@ uint32_t SERVICES_cryptocell_get_rnd(uint32_t services_handle,
 uint32_t SERVICES_cryptocell_get_lcs(uint32_t services_handle,
 					uint32_t *lcs_state,
 					int32_t *error_code);
-// MbedTLS macros and APIs
+/* MbedTLS macros and APIs */
 uint32_t SERVICES_cryptocell_mbedtls_hardware_poll(uint32_t services_handle,
 						   uint32_t *error_code,
 						   uint32_t data,
@@ -616,7 +616,7 @@ uint32_t SERVICES_power_setting_get(uint32_t services_handle,
 				    uint32_t *value,
 				    uint32_t *error_code);
 
-// Clocks services
+/* Clocks services */
 uint32_t SERVICES_clocks_select_osc_source(uint32_t services_handle,
 					   oscillator_source_t source,
 					   oscillator_target_t target,
@@ -695,7 +695,7 @@ uint32_t SERVICES_Boot_Net_Proc(uint32_t services_handle,
 				uint32_t *error_code);
 uint32_t SERVICES_Shutdown_Net_Proc(uint32_t services_handle,
 				uint32_t *error_code);
-// Update services
+/* Update services */
 uint32_t SERVICES_update_stoc(uint32_t services_handle,
 							  uint32_t image_address,
 							  uint32_t image_size,

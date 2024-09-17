@@ -73,59 +73,6 @@ typedef union {
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
-
-/* Needed for future APIs */
-#if 0
-static get_toc_version_svc_t get_toc_version_svc_d;
-static generic_svc_t generic_svc_d;
-static get_lcs_svc_t get_lcs_svc_d;
-static mbedtls_trng_hardware_poll_svc_t mbedtls_trng_hardware_poll_svc_d;
-static mbedtls_aes_init_svc_t mbedtls_aes_init_svc_d;
-static mbedtls_aes_set_key_svc_t mbedtls_aes_set_key_svc_d;
-static mbedtls_aes_crypt_svc_t mbedtls_aes_crypt_svc_d;
-static mbedtls_sha_svc_t mbedtls_sha_svc_d;
-static mbedtls_ccm_gcm_set_key_svc_t mbedtls_ccm_gcm_set_key_svc_d;
-static mbedtls_ccm_gcm_crypt_svc_t mbedtls_ccm_gcm_crypt_svc_d;
-static mbedtls_chacha20_crypt_svc_t mbedtls_chacha20_crypt_svc_d;
-static mbedtls_chachapoly_crypt_svc_t mbedtls_chachapoly_crypt_svc_d;
-static mbedtls_poly1305_crypt_svc_t mbedtls_poly1305_crypt_svc_d;
-static mbedtls_cmac_init_setkey_svc_t mbedtls_cmac_init_setkey_svc_d;
-static mbedtls_cmac_update_svc_t mbedtls_cmac_update_svc_d;
-static mbedtls_cmac_finish_svc_t mbedtls_cmac_finish_svc_d;
-static mbedtls_cmac_reset_svc_t mbedtls_cmac_reset_svc_d;
-static process_toc_entry_svc_t process_toc_entry_svc_d;
-static boot_cpu_svc_t boot_cpu_svc_d;
-static control_cpu_svc_t control_cpu_svc_d;
-static pinmux_svc_t pinmux_svc_d;
-static pad_control_svc_t pad_control_svc_d;
-static uart_write_svc_t uart_write_svc_d;
-static ospi_write_key_svc_t ospi_write_key_svc_d;
-static dmpu_svc_t dmpu_svc_d;
-static get_toc_version_svc_t get_toc_version_svc_d;
-static get_toc_via_name_t get_toc_via_name_d;
-static get_toc_via_cpuid_t get_toc_via_cpuid_d;
-static get_toc_entry_t get_toc_entry;
-static get_toc_data_t get_toc_data;
-static get_otp_data_t get_otp_data;
-static set_services_capabilities_t set_services_capabilities;
-static stop_mode_request_svc_t stop_mode_request_svc_d;
-static ewic_config_request_svc_t ewic_config_request_svc_d;
-static vbat_wakeup_config_request_svc_t vbat_wakeup_config_request_svc_d;
-static mem_ret_config_request_svc_t mem_ret_config_request_svc_d;
-static mem_power_config_request_svc_t mem_power_config_request_svc_d;
-static host_cpu_clus_pwr_req_t host_cpu_clus_pwr_req;
-static bsys_pwr_req_t bsys_pwr_req;
-static global_standby_request_svc_t global_standby_request_svc_d;
-static m55_vtor_save_request_svc_t m55_vtor_save_request_svc_d;
-static clk_select_clock_source_svc_t clk_select_clock_source_svc_d;
-static clk_set_enable_svc_t clk_set_enable_svc_d;
-static clk_m55_set_frequency_svc_t clk_m55_set_frequency_svc_d;
-static clk_select_sys_clk_source_svc_t clk_select_sys_clk_source_svc_d;
-static clk_set_clk_divider_svc_t clk_set_clk_divider_svc_d;
-static pll_xtal_start_svc_t pll_xtal_start_svc_d;
-static pll_clkpll_start_svc_t pll_clkpll_start_svc_d;
-#endif
-
 static uint32_t global_address;
 static uint32_t se_service_recv_data;
 
@@ -169,26 +116,27 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 }
 
 /**
-* @brief Send data to SE through MHUv2.
+ * @brief Send data to SE through MHUv2.
 
-* The Dcache is flushed from address 'ptr' of size
-* dcache_size before sending data to make sure sent or received data are new.
-* The semphores svc_recv_sem and svc_send_sem are used with timeout
-* to make sure data is received or sent.
-*
-* parameters,
-* @ptr         - placeholder for data to be sent.
-* @dcache_size - size of dcache to be flused.
-*
-* returns,
-* 0      - success.
-* err    - unable to send data.
-* -ETIME - semphores are timed out.
-*/
+ * The Dcache is flushed from address 'ptr' of size
+ * dcache_size before sending data to make sure sent or received data are new.
+ * The semphores svc_recv_sem and svc_send_sem are used with timeout
+ * to make sure data is received or sent.
+ *
+ * parameters,
+ * @ptr         - placeholder for data to be sent.
+ * @dcache_size - size of dcache to be flused.
+ *
+ * returns,
+ * 0      - success.
+ * err    - unable to send data.
+ * -ETIME - semphores are timed out.
+ */
 static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size, uint32_t timeout)
 {
 	int err;
 	int service_id = ((service_header_t *)ptr)->hdr_service_id;
+
 	global_address = local_to_global(ptr);
 	__asm__ volatile("dmb 0xF" ::: "memory");
 	sys_cache_data_flush_range(ptr, dcache_size);
@@ -250,17 +198,17 @@ int se_service_sync(void)
 }
 
 /**
-* @brief Send heartbeat service request to SE to check if SE is alive.
+ * @brief Send heartbeat service request to SE to check if SE is alive.
 
-* Set the service id as SERVICE_MAINTENANCE_HEARTBEAT_ID in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* returns,
-* 0      - success.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
-*/
+ * Set the service id as SERVICE_MAINTENANCE_HEARTBEAT_ID in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * returns,
+ * 0      - success.
+ * err    - if unable to send service request.
+ * errno  - Unable to unlock mutex.
+ */
 int se_service_heartbeat(void)
 {
 	int err;
@@ -282,26 +230,27 @@ int se_service_heartbeat(void)
 }
 
 /**
-* @brief Send service request to SE to get random number.
+ * @brief Send service request to SE to get random number.
 
-* Set the service id as SERVICE_CRYPTOCELL_GET_RND in the
-* service_header, set send_rnd_length with required random number length and
-* call send_msg_to_se to send the service request. Use svc_mutex to
-* avoid race condition while sending service request.
-*
-* parameters,
-* @buffer - placeholder for random number.
-* @length - length of requested random number.
-*
-* returns,
-* 0        - success, buffer contains random numbers of length 'length'.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * Set the service id as SERVICE_CRYPTOCELL_GET_RND in the
+ * service_header, set send_rnd_length with required random number length and
+ * call send_msg_to_se to send the service request. Use svc_mutex to
+ * avoid race condition while sending service request.
+ *
+ * parameters,
+ * @buffer - placeholder for random number.
+ * @length - length of requested random number.
+ *
+ * returns,
+ * 0        - success, buffer contains random numbers of length 'length'.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 {
 	int err, resp_err = -1;
+
 	if (!buffer) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
@@ -333,21 +282,21 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 }
 
 /**
-* @brief Send service request to SE to get number of table of contents (TOC).
+ * @brief Send service request to SE to get number of table of contents (TOC).
 
-* Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* parameters,
-* @ptoc - placeholder for TOC number.
-*
-* returns,
-* 0        - success, ptoc contains number of TOC.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @ptoc - placeholder for TOC number.
+ *
+ * returns,
+ * 0        - success, ptoc contains number of TOC.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_toc_number(uint32_t *ptoc)
 {
 	int err, resp_err = -1;

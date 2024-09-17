@@ -124,9 +124,9 @@ extern "C" {
  * @struct service_header_t
  */
 typedef struct {
-	volatile uint16_t hdr_service_id; // Requested Service ID
-	volatile uint16_t hdr_flags;      // Request flags
-	volatile uint16_t hdr_error_code; // Transport layer error code
+	volatile uint16_t hdr_service_id; /* Requested Service ID */
+	volatile uint16_t hdr_flags;      /* Request flags */
+	volatile uint16_t hdr_error_code; /* Transport layer error code */
 	volatile uint16_t hdr_padding;
 } service_header_t;
 
@@ -134,13 +134,13 @@ typedef struct {
  *  Service format definitions
  ******************************************************************************/
 
-// Generic APIs
+/* Generic APIs */
 typedef struct {
 	service_header_t header;
 	volatile int     resp_error_code;
 } generic_svc_t;
 
-// AI PM APIs
+/* AI PM APIs */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_power_domains;
@@ -211,7 +211,7 @@ typedef struct {
 	volatile int      resp_error_code;
 } aipm_get_off_profile_svc_t;
 
-// Extsys0 services
+/* Extsys0 services */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_nvds_src_addr;
@@ -232,12 +232,13 @@ typedef struct {
 	volatile int     resp_error_code;
 } extsys1_wakeup_svc_t;
 
-// Crypto Services
+/* Crypto Services */
 
-// Get Random Data
+/* Get Random Data */
 
-// MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt is 1024,
-// it was decided that we will use a smaller buffer
+/* MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt is 1024,
+ * it was decided that we will use a smaller buffer
+ */
 #define MAX_RND_LENGTH 256
 typedef struct {
 	service_header_t header;
@@ -246,14 +247,14 @@ typedef struct {
 	volatile int       resp_error_code;
 } get_rnd_svc_t;
 
-// Get LCS
+/* Get LCS */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  resp_lcs;
 	volatile uint32_t  resp_error_code;
 } get_lcs_svc_t;
 
-// MBEDTLS TRNG HARDWARE POLL
+/* MBEDTLS TRNG HARDWARE POLL */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_data_addr;
@@ -263,13 +264,13 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_trng_hardware_poll_svc_t;
 
-// MBEDTLS AES INIT
+/* MBEDTLS AES INIT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
 } mbedtls_aes_init_svc_t;
 
-// MBEDTLS AES SET KEY
+/* MBEDTLS AES SET KEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -279,12 +280,12 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_aes_set_key_svc_t;
 
-// MBEDTLS AES CRYPT
+/* MBEDTLS AES CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
-	volatile uint32_t send_crypt_type; // ECB, CBC, CTR_OFB
-	volatile uint32_t send_mode;       // Encrypt, Decrypt
+	volatile uint32_t send_crypt_type; /* ECB, CBC, CTR_OFB */
+	volatile uint32_t send_mode;       /* Encrypt, Decrypt */
 	volatile uint32_t send_length;
 	volatile uint32_t send_iv_addr;
 	volatile uint32_t send_input_addr;
@@ -292,17 +293,17 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_aes_crypt_svc_t;
 
-// MBEDTLS SHA
+/* MBEDTLS SHA */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
-	volatile uint32_t send_sha_type;  // SHA1, SHA224, SHA256
+	volatile uint32_t send_sha_type;  /* SHA1, SHA224, SHA256 */
 	volatile uint32_t send_data_addr;
 	volatile uint32_t send_data_length;
 	volatile uint32_t resp_error_code;
 } mbedtls_sha_svc_t;
 
-// MBEDTLS CCM/GCM SET KEY
+/* MBEDTLS CCM/GCM SET KEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -313,7 +314,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_ccm_gcm_set_key_svc_t;
 
-// MBEDTLS CCM/GCM CRYPT
+/* MBEDTLS CCM/GCM CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -330,7 +331,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_ccm_gcm_crypt_svc_t;
 
-// MBEDTLS CHACHA20 CRYPT
+/* MBEDTLS CHACHA20 CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_key_addr;
@@ -342,7 +343,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_chacha20_crypt_svc_t;
 
-// MBEDTLS CHACHAPOLY CRYPT
+/* MBEDTLS CHACHAPOLY CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -357,7 +358,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_chachapoly_crypt_svc_t;
 
-// MBEDTLS POLY1305 CRYPT
+/* MBEDTLS POLY1305 CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_key_addr;
@@ -367,7 +368,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_poly1305_crypt_svc_t;
 
-// MBEDTLS CMAC INIT/SETKEY
+/* MBEDTLS CMAC INIT/SETKEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -376,7 +377,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_init_setkey_svc_t;
 
-// MBEDTLS CMAC UPDATE
+/* MBEDTLS CMAC UPDATE */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -385,7 +386,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_update_svc_t;
 
-// MBEDTLS CMAC FINISH
+/* MBEDTLS CMAC FINISH */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -393,7 +394,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_finish_svc_t;
 
-// MBEDTLS CMAC RESET
+/* MBEDTLS CMAC RESET */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -401,16 +402,16 @@ typedef struct {
 } mbedtls_cmac_reset_svc_t;
 
 
-// Boot Services
+/* Boot Services */
 
-// Process TOC Entry
+/* Process TOC Entry */
 typedef struct {
 	service_header_t header;
 	volatile uint8_t   send_entry_id[IMAGE_NAME_LENGTH];
 	volatile uint32_t  resp_error_code;
 } process_toc_entry_svc_t;
 
-// Boot CPU
+/* Boot CPU */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_cpu_id;
@@ -418,7 +419,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } boot_cpu_svc_t;
 
-// Control CPU
+/* Control CPU */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_cpu_id;
@@ -429,7 +430,7 @@ typedef struct {
  * Application Services
  */
 
-// Pimux
+/* Pinmux */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -438,7 +439,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } pinmux_svc_t;
 
-// Pad Control
+/* Pad Control */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -455,7 +456,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } uart_write_svc_t;
 
-// OSPI write key
+/* OSPI write key */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_command;
@@ -463,7 +464,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } ospi_write_key_svc_t;
 
-// Perform the DMPU function, to advance from DM to SE LCS
+/* Perform the DMPU function, to advance from DM to SE LCS */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_assets_addr;
@@ -638,9 +639,9 @@ typedef struct {
 	uint16_t pad;
 } stop_mode_request_svc_t;
 
-//----------------------------------------------------------------
-// EWIC configuration Request
-//
+/**
+ * EWIC configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_ewic_source;
@@ -648,9 +649,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } ewic_config_request_svc_t;
 
-//----------------------------------------------------------------
-// VBAT wakeup configuration Request
-//
+/**
+ * VBAT wakeup configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_vbat_wakeup_source;
@@ -658,9 +659,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } vbat_wakeup_config_request_svc_t;
 
-//----------------------------------------------------------------
-// SE memory retention configuration Request
-//
+/**
+ * SE memory retention configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_mem_retention;
@@ -668,18 +669,18 @@ typedef struct {
 	uint32_t resp_error_code;
 } mem_ret_config_request_svc_t;
 
-//----------------------------------------------------------------
-// SRAM 0 1 MRAM Power On Off
-//
+/**
+ * SRAM 0 1 MRAM Power On Off
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_memory_power;
 	uint32_t resp_error_code;
 } mem_power_config_request_svc_t;
 
-//----------------------------------------------------------------
-// Global standby mode Request
-//
+/**
+ * Global standby mode Request
+ */
 typedef union {
 	struct {
 		uint16_t pwr_req :1;
@@ -714,9 +715,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } global_standby_request_svc_t;
 
-//----------------------------------------------------------------
-// M55-HE VTOR save Request
-//
+/**
+ * M55-HE VTOR save Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t ns_vtor_addr;
@@ -725,30 +726,31 @@ typedef struct {
 	uint32_t resp_error_code;
 } m55_vtor_save_request_svc_t;
 
-//----------------------------------------------------------------
-// DCDC voltage control Request
-//
+/**
+ * DCDC voltage control Request
+ */
 typedef struct {
 	service_header_t header;
-	uint32_t dcdc_vout_sel; // bit1:0
-	uint32_t dcdc_vout_trim; // bit3:0
+	uint32_t dcdc_vout_sel; /* bit1:0 */
+	uint32_t dcdc_vout_trim; /* bit3:0 */
 	uint32_t resp_error_code;
 } dcdc_voltage_request_svc_t;
 
-//----------------------------------------------------------------
-// LDO voltage control Request
-//
+/**
+ * LDO voltage control Request
+ */
 typedef struct {
 	service_header_t header;
-	uint32_t ret_ldo_voltage; // bit3:0
-	uint32_t aon_ldo_voltage; // bit3:0
+	uint32_t ret_ldo_voltage; /* bit3:0 */
+	uint32_t aon_ldo_voltage; /* bit3:0 */
 	uint32_t resp_error_code;
 } ldo_voltage_request_svc_t;
 
-//----------------------------------------------------------------
-// Clocks API
+/**
+ * Clocks API
+ */
 
-// struct for clock selection APIs
+/* struct for clock selection APIs */
 typedef struct {
 	service_header_t header;
 	uint32_t send_clock_source;
@@ -756,7 +758,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_select_clock_source_svc_t;
 
-// enable or disable a clock
+/* enable or disable a clock */
 typedef struct {
 	service_header_t header;
 	uint32_t send_clock_type;
@@ -764,21 +766,21 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_set_enable_svc_t;
 
-// struct for M55 frequency selection APIs
+/* struct for M55 frequency selection APIs */
 typedef struct {
 	service_header_t header;
 	uint32_t send_frequency;
 	uint32_t resp_error_code;
 } clk_m55_set_frequency_svc_t;
 
-// struct for system clock source selection (A32 and AXI)
+/* struct for system clock source selection (A32 and AXI) */
 typedef struct {
 	service_header_t header;
 	uint32_t send_source;
 	uint32_t resp_error_code;
 } clk_select_sys_clk_source_svc_t;
 
-// struct for setting clock dividers
+/* struct for setting clock dividers */
 typedef struct {
 	service_header_t header;
 	uint32_t send_divider;
@@ -786,7 +788,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_set_clk_divider_svc_t;
 
-// struct for returning clock registers
+/* struct for returning clock registers */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t cgu_osc_ctrl;
@@ -802,7 +804,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } clk_get_clocks_svc_t;
 
-// struct for starting the external HF crystall
+/* struct for starting the external HF crystal */
 typedef struct {
 	service_header_t header;
 	uint32_t send_faststart;
@@ -811,7 +813,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } pll_xtal_start_svc_t;
 
-// struct for starting the PLL
+/* struct for starting the PLL */
 typedef struct {
 	service_header_t header;
 	uint32_t send_faststart;
@@ -819,7 +821,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } pll_clkpll_start_svc_t;
 
-// struct for updating the STOC
+/* struct for updating the STOC */
 typedef struct {
 	service_header_t header;
 	uint32_t send_image_address;
@@ -827,7 +829,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } update_stoc_svc_t;
 
-// Power Get/Configure API
+/* Power Get/Configure API */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_setting_type;
