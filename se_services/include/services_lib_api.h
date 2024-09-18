@@ -3,7 +3,7 @@
  * @file services_lib_api.h
  *
  * @brief Services library public API header file
- * @defgroup host_services Host Services
+ * @defgroup host-services Host Services
  * @par
  *
  * Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
@@ -353,6 +353,16 @@ typedef enum {
 	POWER_SETTING_SCALED_CLK_FREQ
 } power_setting_t;
 
+typedef enum {
+	CLOCK_SETTING_HFOSC_FREQ,
+	CLOCK_SETTING_EXTSYS0_FREQ,
+	CLOCK_SETTING_EXTSYS1_FREQ,
+	CLOCK_SETTING_AXI_FREQ,
+	CLOCK_SETTING_AHB_FREQ,
+	CLOCK_SETTING_APB_FREQ,
+	CLOCK_SETTING_SYSREF_FREQ,
+} clock_setting_t;
+
 /*******************************************************************************
  *  G L O B A L   D E F I N E S
  ******************************************************************************/
@@ -574,6 +584,9 @@ uint32_t SERVICES_power_wakeup_config(uint32_t services_handle,
 uint32_t SERVICES_power_memory_req(uint32_t services_handle,
 				   uint32_t memory_request,
 				   uint32_t *error_code);
+uint32_t SERVICES_power_se_sleep_req(uint32_t services_handle,
+				     uint32_t se_param,
+				     uint32_t *error_code);
 uint32_t
 SERVICES_power_mem_retention_config(uint32_t services_handle,
 				    uint32_t mem_retention,
@@ -653,12 +666,10 @@ uint32_t SERVICES_clocks_set_divider(uint32_t services_handle,
 				     uint32_t value,
 				     uint32_t *error_code);
 
-uint32_t SERVICES_clocks_get_apb_frequency(uint32_t services_handle,
-					uint32_t *frequency,
-					uint32_t *error_code);
-uint32_t SERVICES_clocks_get_refclk_frequency(uint32_t services_handle,
-					uint32_t *frequency,
-					uint32_t *error_code);
+uint32_t SERVICES_clocks_setting_get(uint32_t services_handle,
+				     clock_setting_t setting_type,
+				     uint32_t *value,
+				     uint32_t *error_code);
 
 uint32_t SERVICES_pll_initialize(uint32_t services_handle,
 				 uint32_t *error_code);
