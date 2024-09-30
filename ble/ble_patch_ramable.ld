@@ -6,7 +6,7 @@ SECTION_PROLOGUE(.ble_patch_code,,)
     __ble_patch_code_load_start = LOADADDR(.ble_patch_code);
     KEEP(*(._ble_patch_code));
     . = ALIGN(16);
-} GROUP_LINK_IN(RAMABLE_REGION AT > ROMABLE_REGION)
+} GROUP_LINK_IN(ROMABLE_REGION)
 
 SECTION_PROLOGUE(.ble_patch_data,,)
 {

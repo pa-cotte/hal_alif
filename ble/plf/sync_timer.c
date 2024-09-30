@@ -10,6 +10,7 @@
 #include "sync_timer.h"
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
+#include "utimer.h"
 
 LOG_MODULE_REGISTER(iso_sync_timer);
 
@@ -178,6 +179,13 @@ static void capture_irq_handler(const void *context)
 
 int32_t sync_timer_init(void)
 {
+	/* Enable clock for DMA2 and EVTRTR2 */
+	mem_addr_t reg = 0x43007010;
+	uint32_t orig = sys_read32(reg);
+	uint32_t new = orig | 0x10;
+
+	sys_write32(new, reg);
+
 	/*
 	 * Set up event router to generate a global event on the rising edge of the
 	 * ISO GPIO 0 signal indicating an event occurs on an ISO over shared memory
@@ -190,6 +198,8 @@ int32_t sync_timer_init(void)
 	 * so we use instead the ISO GPIO 0 event to indirectly raise an interrupt
 	 * by triggering a capture on a dedicated UTIMER channel.
 	 */
+	sys_set_bit(UTIMER_GLB_CLOCK_ENABLE(0x48000000), ISO_EVT_UTIMER_CHAN);
+
 	utimer_chan_t *utimer_chan = UTIMER_CHAN(ISO_EVT_UTIMER_CHAN);
 
 	/* Capture timer value when GPIO 0 is triggered on CAPTURE_A */

@@ -6,7 +6,7 @@ SECTION_PROLOGUE(.lc3_patch_code,,)
     __lc3_patch_code_load_start = LOADADDR(.lc3_patch_code);
     KEEP(*(._lc3_patch_code));
     . = ALIGN(16);
-} GROUP_LINK_IN(RAMABLE_REGION AT > ROMABLE_REGION)
+} GROUP_LINK_IN(ROMABLE_REGION)
 
 SECTION_PROLOGUE(.lc3_patch_data,,)
 {
