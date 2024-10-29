@@ -59,10 +59,12 @@ typedef union {
 	get_rnd_svc_t get_rnd_svc_d;
 	get_se_revision_t get_se_revision_svc_d;
 	get_toc_number_svc_t get_toc_number_svc_d;
+	get_toc_version_svc_t get_toc_version_svc_d;
 	get_device_part_svc_t get_device_part_svc_d;
 	otp_data_t read_otp_svc_d;
 	get_device_revision_data_t get_device_revision_data_d;
 	net_proc_boot_svc_t boot_svc_d;
+	net_proc_boot_svc_1_101_t boot_1_101_svc_d;
 	net_proc_shutdown_svc_t shutdown_svc_d;
 	set_services_capabilities_t set_services_capabilities_d;
 	aipm_get_run_profile_svc_t get_run_d;
@@ -332,6 +334,56 @@ int se_service_get_toc_number(uint32_t *ptoc)
 	return 0;
 }
 
+/**
+ * @brief Send service request to SE to get TOC Version.
+
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_VERSION in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @pversion - placeholder for TOC Version.
+ *
+ * returns,
+ * 0        - success, ptoc contains the TOC version.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
+int se_service_get_toc_version(uint32_t *pversion)
+{
+	int err, resp_err;
+
+	if (!pversion) {
+		LOG_ERR("Invalid argument\n");
+		return -EINVAL;
+	}
+
+	err = k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT));
+	if (err) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", err);
+		return err;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_toc_version_svc_d.header.hdr_service_id =
+		SERVICE_SYSTEM_MGMT_GET_TOC_VERSION;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_toc_version_svc_d,
+			     sizeof(se_service_all_svc_d.get_toc_version_svc_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_toc_version_svc_d.resp_error_code;
+
+	*pversion = se_service_all_svc_d.get_toc_version_svc_d.resp_version;
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
 /**
  * @brief Send service request to SE to get revision of SE firmware.
  *
@@ -698,24 +750,42 @@ int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension)
  */
 int se_service_boot_es0(uint8_t *nvds_buff, uint16_t nvds_size)
 {
-	int err, resp_err = -1;
+	int err, resp_err;
+	uint32_t version;
 
-	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
-		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
-		return errno;
+	err = se_service_get_toc_version(&version);
+	if (err) {
+		return err;
+	}
+	LOG_DBG("toc version: %x", version);
+
+	err = k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT));
+	if (err) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", err);
+		return err;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.boot_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_BOOT_SET_ARGS;
 
+	se_service_all_svc_d.boot_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_BOOT_SET_ARGS;
 	se_service_all_svc_d.boot_svc_d.send_nvds_src_addr = local_to_global(nvds_buff);
 	se_service_all_svc_d.boot_svc_d.send_nvds_dst_addr = 0x501D0000;
 	se_service_all_svc_d.boot_svc_d.send_nvds_copy_len = nvds_size;
 	se_service_all_svc_d.boot_svc_d.send_trng_dst_addr = 0x501D0200;
 	se_service_all_svc_d.boot_svc_d.send_trng_len = 64;
+	if (version > 0x01650000) {
+		/* additional fields are added only when SE supports it */
+		se_service_all_svc_d.boot_svc_d.send_es0_clock_select =
+			CONFIG_SE_SERVICE_RF_CORE_FREQUENCY;
+	}
 
 	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.boot_svc_d,
 			     sizeof(se_service_all_svc_d.boot_svc_d), SERVICE_TIMEOUT);
-	resp_err = se_service_all_svc_d.boot_svc_d.resp_error_code;
+
+	if (version > 0x01650000) {
+		resp_err = se_service_all_svc_d.boot_svc_d.resp_error_code;
+	} else {
+		resp_err = se_service_all_svc_d.boot_1_101_svc_d.resp_error_code;
+	}
 
 	k_mutex_unlock(&svc_mutex);
 	if (err) {

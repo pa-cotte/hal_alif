@@ -228,6 +228,25 @@ typedef struct {
 	volatile uint32_t send_trng_dst_addr;
 	volatile uint32_t send_trng_len;
 	volatile int      resp_error_code;
+} net_proc_boot_svc_1_101_t;
+
+#if defined(CONFIG_SOC_SERIES_BALLETTO_B1)
+
+/* ES0 CPU clock frequencies */
+#define ES0_CLOCK_16MHZ   0
+#define ES0_CLOCK_24MHZ   4
+#define ES0_CLOCK_48MHZ   0xC
+#endif
+
+typedef struct {
+	service_header_t header;
+	volatile uint32_t send_nvds_src_addr;
+	volatile uint32_t send_nvds_dst_addr;
+	volatile uint32_t send_nvds_copy_len;
+	volatile uint32_t send_trng_dst_addr;
+	volatile uint32_t send_trng_len;
+	volatile uint32_t send_es0_clock_select;
+	volatile int      resp_error_code;
 } net_proc_boot_svc_t;
 
 typedef struct {
