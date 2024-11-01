@@ -13,7 +13,6 @@
  * License Agreement with this file. If not, please write to:
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
  *
-
  */
 #ifndef __AIPM_H__
 #define __AIPM_H__
