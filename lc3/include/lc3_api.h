@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Alif Semiconductor
+ * Copyright (c) 2024 Alif Semiconductor
  *
  * SPDX-License-Identifier: Apache-2.0
  */
