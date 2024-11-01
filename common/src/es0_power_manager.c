@@ -11,6 +11,7 @@
 #include <string.h>
 #include "es0_power_manager.h"
 #include "se_service.h"
+#include "alif_protocol_const.h"
 
 static volatile uint8_t es0_user_counter;
 #define LL_BOOT_PARAMS_MAX_SIZE (512)
@@ -86,10 +87,13 @@ static uint8_t *write_tlv_str(uint8_t *target, uint8_t tag, const void *value, u
 
 static void alif_eui48_read(uint8_t *eui48)
 {
-#ifdef IEEE802154_ALIF_OUI
-	eui64[0] = (uint8_t)(IEEE802154_ALIF_OUI >> 16);
-	eui64[1] = (uint8_t)(IEEE802154_ALIF_OUI >> 8);
-	eui64[2] = (uint8_t)(IEEE802154_ALIF_OUI);
+#ifdef ALIF_IEEE_MA_L_IDENTIFIER
+	eui48[0] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER >> 16);
+	eui48[1] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER >> 8);
+	eui48[2] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER);
+#else
+	se_service_get_rnd_num(&eui48[0], 3);
+	eui48[0] |= 0xC0;
 #endif
 	se_system_get_eui_extension(true, &eui48[3]);
 	if (eui48[3] || eui48[4] || eui48[5]) {
