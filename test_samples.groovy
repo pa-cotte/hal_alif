@@ -10,13 +10,13 @@ def zephyr_init() {
         pip install west
         deactivate"""
 
-    if (fileExists('/media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz')) {
+    if (fileExists('/media/share/jenkins_share/zephyrproject_hal_alif.tar.gz')) {
         sh """#!/bin/bash -xe
             eval `ssh-agent -s`
             . venv/bin/activate
 	    echo "Unpackage from tar"
-            cp /media/share/jenkins_share/zephyrproject_zephyr_alif.tar.gz .
-            tar xf zephyrproject_zephyr_alif.tar.gz
+            cp /media/share/jenkins_share/zephyrproject_hal_alif.tar.gz .
+            tar xf zephyrproject_hal_alif.tar.gz
             cd zephyrproject
 	    cd alif
 	    GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' git checkout main
@@ -45,8 +45,8 @@ def zephyr_init() {
             GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_alif-ci-Dev-cert -o IdentitiesOnly=yes' west zephyr-export
             pip install -r scripts/requirements.txt
             cd ../..
-            tar -czvf zephyrproject_zephyr_alif.tar.gz zephyrproject
-            cp zephyrproject_zephyr_alif.tar.gz /media/share/jenkins_share/
+            tar -czvf zephyrproject_hal_alif.tar.gz zephyrproject
+            cp zephyrproject_hal_alif.tar.gz /media/share/jenkins_share/
             deactivate"""
     }
 }

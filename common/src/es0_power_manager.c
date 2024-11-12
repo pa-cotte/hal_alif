@@ -1,16 +1,12 @@
-/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
- * Use, distribution and modification of this code is permitted under the
- * terms stated in the Alif Semiconductor Software License Agreement
+/*
+ * Copyright (c) 2024 Alif Semiconductor
  *
- * You should have received a copy of the Alif Semiconductor Software
- * License Agreement with this file. If not, please write to:
- * contact@alifsemi.com, or visit: https://alifsemi.com/license
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
-
 #include <string.h>
 #include "es0_power_manager.h"
 #include "se_service.h"
+#include "alif_protocol_const.h"
 
 static volatile uint8_t es0_user_counter;
 #define LL_BOOT_PARAMS_MAX_SIZE (512)
@@ -84,11 +80,35 @@ static uint8_t *write_tlv_str(uint8_t *target, uint8_t tag, const void *value, u
 	return target;
 }
 
+static void alif_eui48_read(uint8_t *eui48)
+{
+#ifdef ALIF_IEEE_MA_L_IDENTIFIER
+	eui48[0] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER >> 16);
+	eui48[1] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER >> 8);
+	eui48[2] = (uint8_t)(ALIF_IEEE_MA_L_IDENTIFIER);
+#else
+	se_service_get_rnd_num(&eui48[0], 3);
+	eui48[0] |= 0xC0;
+#endif
+	se_system_get_eui_extension(true, &eui48[3]);
+	if (eui48[3] || eui48[4] || eui48[5]) {
+		return;
+	}
+	/* Generate Random Local value (ELI) */
+	se_service_get_rnd_num(&eui48[3], 3);
+}
+
 int8_t take_es0_into_use(void)
 {
 	if (255 == es0_user_counter) {
 		return -1;
 	}
+
+	if (es0_user_counter == 0) {
+		/* Shuttdown is needed if riscv was already active */
+		se_service_shutdown_es0();
+	}
+
 	static uint8_t ll_boot_params_buffer[LL_BOOT_PARAMS_MAX_SIZE];
 
 	memset(ll_boot_params_buffer, 0xFF, LL_BOOT_PARAMS_MAX_SIZE);
@@ -114,8 +134,9 @@ int8_t take_es0_into_use(void)
 		return -2;
 	}
 
-	/* TODO: Fix this to have proper 48bit UID */
-	uint8_t bd_address[BOOT_PARAM_LEN_BD_ADDRESS] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB};
+	uint8_t bd_address[BOOT_PARAM_LEN_BD_ADDRESS];
+
+	alif_eui48_read(bd_address);
 
 	ptr = write_tlv_int(ptr, BOOT_PARAM_ID_LE_CODED_PHY_500, CONFIG_ALIF_PM_LE_CODED_PHY_500,
 			    BOOT_PARAM_LEN_LE_CODED_PHY_500);

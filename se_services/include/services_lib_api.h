@@ -3,7 +3,7 @@
  * @file services_lib_api.h
  *
  * @brief Services library public API header file
- * @defgroup host_services Host Services
+ * @defgroup host-services Host Services
  * @par
  *
  * Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
@@ -33,6 +33,11 @@ extern "C" {
 /*******************************************************************************
  *  M A C R O   D E F I N E S
  ******************************************************************************/
+
+/**
+ * Default service call timeout
+ */
+#define DEFAULT_TIMEOUT                            (0)
 
 /**
  * Common Service error codes - follow the pattern from the PLL services
@@ -75,10 +80,10 @@ extern "C" {
 /**
  * Boot services error codes (returned by SERVICES_boot_process_toc_entry())
  */
-#define BOOT_OK                                    0x00 // BL_STATUS_OK
-#define BOOT_ERROR_INVALID_TOC                     0x12 // BL_ERROR_INVALID_TOC
-#define BOOT_ERROR_INVALID_TOC_ENTRY_ID            0x15 // BL_ERROR_INVALID_TOC_ENTRY_ID
-#define BOOT_ERROR_INVALID_TOC_CPU_ID              0x16 // BL_ERROR_INVALID_TOC_CPU_ID
+#define BOOT_OK                                    0x00 /* BL_STATUS_OK */
+#define BOOT_ERROR_INVALID_TOC                     0x12 /* BL_ERROR_INVALID_TOC */
+#define BOOT_ERROR_INVALID_TOC_ENTRY_ID            0x15 /* BL_ERROR_INVALID_TOC_ENTRY_ID */
+#define BOOT_ERROR_INVALID_TOC_CPU_ID              0x16 /* BL_ERROR_INVALID_TOC_CPU_ID */
 
 /**
  * OTP Offsets
@@ -89,6 +94,7 @@ extern "C" {
 #define OTP_MANUFACTURE_INFO_SERIAL_NUMBER_END     0x5A
 #define OTP_MANUFACTURE_INFO_PART_NUMBER_START     0x5B
 #define OTP_MANUFACTURE_INFO_PART_NUMBER_END       0x5E
+#define OTP_CUSTOMER_SECURITY_FLAGS_START          0x5F
 
 #define OTP_ALIF_MANUFACTURE_INFO_PART_NUMBER_LENGTH_BYTES    16
 #define OTP_ALIF_MANUFACTURE_INFO_OPTIONAL_LENGTH_BYTES       32
@@ -154,28 +160,28 @@ extern "C" {
 /*
  * Host CPU Cluster Power Request HOST_CPU_CLUS_PWR_REQ
  */
-// MEM_RET_REQ
+/* MEM_RET_REQ */
 #define MEM_RET_REQ_LAST_LEVEL_CACHE_RET_OFF   0x0
 #define MEM_RET_REQ_LAST_LEVEL_CACHE_RET_ON    0x1
-// PWR_REQ
+/* PWR_REQ */
 #define PWR_REQ_CLUSTOP_LOW_POWER_ON           0x0
 #define PWR_REQ_CLUSTOP_FUNC_RET_ON            0x1
 
 /*
  * Base System Power Request BSYS_PWR_REQ
  */
-// SYSTOP_PWR_REQ
+/* SYSTOP_PWR_REQ */
 #define SYSTOP_PWR_REQ_LOGIC_OFF_MEM_OFF       0x0
 #define SYSTOP_PWR_REQ_LOGIC_OFF_MEM_RET       0x1
 #define SYSTOP_PWR_REQ_LOGIC_ON_MEM_ON_OR_RET  0x2
 #define SYSTOP_PWR_REQ_LOGIC_ON_MEM_ON         0x4
-// DBGTOP_PWR_REQ
+/* DBGTOP_PWR_REQ */
 #define DBGTOP_PWR_REQ_OFF                     0x0
 #define DBGTOP_PWR_REQ_ON                      0x1
-// REFCLK_REQ
+/* REFCLK_REQ */
 #define REFCLK_REQ_OFF                         0x0
 #define REFCLK_REQ_ON                          0x1
-// WAKEUP_EN
+/* WAKEUP_EN */
 #define WAKEUP_EN_SE_OFF                       0x0
 #define WAKEUP_EN_SE_ON                        0x1
 
@@ -198,7 +204,7 @@ extern "C" {
    */
 #define SYSTOP_LOGIC_OFF_POWER_OFF             0x0
 #define SYSTOP_LOGIC_OFF_RETENTION_ON          0x1
-#define SYSTOP_LOGIC_ON_POWER_X_RET_X          0x2 // can be powered/retained
+#define SYSTOP_LOGIC_ON_POWER_X_RET_X          0x2 /* can be powered/retained */
 #define SYSTOP_LOGIC_ON_POWER_ON               0x4
 
 /*******************************************************************************
@@ -212,10 +218,10 @@ typedef int (*print_msg_t)(const char *fmt, ...);
  *  @enum SERVICES_cpuid_t
  */
 typedef enum {
-	HOST_CPU_0   = 0,                /**< A32_0 CPU               */
-	HOST_CPU_1   = 1,                /**< A32_1 CPU               */
-	EXTSYS_0     = 2,                /**< M55 HP CPU or other CPU */
-	EXTSYS_1     = 3,                /**< M55 HE CPU              */
+	HOST_CPU_0   = 0,         /**< A32_0 CPU               */
+	HOST_CPU_1   = 1,         /**< A32_1 CPU               */
+	EXTSYS_0     = 2,         /**< M55 HP CPU or other CPU */
+	EXTSYS_1     = 3,         /**< M55 HE CPU              */
 } SERVICES_cpuid_t;
 
 /**
@@ -259,7 +265,7 @@ typedef struct {
 } SERVICES_toc_data_t;
 
 /**
- * @struct Power profiles
+ * @struct services_power_profile_t
  */
 typedef enum {
 	OFF_PROFILE = 0,               /**< OFF_PROFILE           */
@@ -271,22 +277,22 @@ typedef enum {
  * Clocks Services definitions
  */
 
-// Oscillator clock selectors
+/* Oscillator clock selectors */
 typedef enum {
-	OSCILLATOR_SOURCE_RC,    // use RC as oscillator clock
-	OSCILLATOR_SOURCE_XTAL   // use XTAL  as oscillator clock
+	OSCILLATOR_SOURCE_RC,    /* use RC as oscillator clock */
+	OSCILLATOR_SOURCE_XTAL   /* use XTAL  as oscillator clock */
 } oscillator_source_t;
 
 typedef enum {
-	OSCILLATOR_TARGET_SYS_CLOCKS,    // various system clocks
-	OSCILLATOR_TARGET_PERIPH_CLOCKS, // clock for peripherrals
-	OSCILLATOR_TARGET_S32K_CLOCK     // 32K low frequency clock
+	OSCILLATOR_TARGET_SYS_CLOCKS,    /* various system clocks */
+	OSCILLATOR_TARGET_PERIPH_CLOCKS, /* clock for peripherrals */
+	OSCILLATOR_TARGET_S32K_CLOCK     /* 32K low frequency clock */
 } oscillator_target_t;
 
-// PLL clock selectors
+/* PLL clock selectors */
 typedef enum {
-	PLL_SOURCE_PLL,  // use the PLL clocks
-	PLL_SOURCE_OSC   // use the OCS clocks (can be RC or XTAL)
+	PLL_SOURCE_PLL,  /* use the PLL clocks */
+	PLL_SOURCE_OSC   /* use the OCS clocks (can be RC or XTAL) */
 } pll_source_t;
 
 typedef enum {
@@ -295,7 +301,8 @@ typedef enum {
 	PLL_TARGET_UART,
 	PLL_TARGET_ES0,
 	PLL_TARGET_ES1,
-	PLL_TARGET_SECENC
+	PLL_TARGET_SECENC,
+	PLL_TARGET_PD4_SRAM
 } pll_target_t;
 
 typedef enum {
@@ -307,7 +314,9 @@ typedef enum {
 	CLKEN_CLK_160M,
 	CLKEN_CLK_100M,
 	CLKEN_USB,
-	CLKEN_HFOSC
+	CLKEN_HFOSC,
+	CLKEN_SRAM0,
+	CLKEN_SRAM1
 } clock_enable_t;
 
 typedef enum {
@@ -339,6 +348,21 @@ typedef struct {
 	uint32_t trng_len;
 } net_proc_boot_args_t;
 
+typedef enum {
+	POWER_SETTING_BOR_EN,
+	POWER_SETTING_SCALED_CLK_FREQ
+} power_setting_t;
+
+typedef enum {
+	CLOCK_SETTING_HFOSC_FREQ,
+	CLOCK_SETTING_EXTSYS0_FREQ,
+	CLOCK_SETTING_EXTSYS1_FREQ,
+	CLOCK_SETTING_AXI_FREQ,
+	CLOCK_SETTING_AHB_FREQ,
+	CLOCK_SETTING_APB_FREQ,
+	CLOCK_SETTING_SYSREF_FREQ,
+} clock_setting_t;
+
 /*******************************************************************************
  *  G L O B A L   D E F I N E S
  ******************************************************************************/
@@ -347,16 +371,15 @@ typedef struct {
  *  F U N C T I O N   P R O T O T Y P E S
  ******************************************************************************/
 
-// Services infrastructure APIs
+/* Services infrastructure APIs */
 uint32_t SERVICES_register_channel(uint32_t mhu_id, uint32_t channel_number);
 void SERVICES_unregister_channel(uint32_t mhu_id, uint32_t channel_number);
 
 const char *SERVICES_version(void);
 char *SERVICES_error_to_string(uint32_t error_code);
 
-// Services functional APIs
+/* Services functional APIs */
 uint32_t SERVICES_heartbeat(uint32_t services_handle);
-uint32_t SERVICES_heartbeat_async(uint32_t services_handle, SERVICES_sender_callback callback);
 uint32_t SERVICES_uart_write(uint32_t services_handle, size_t size, const uint8_t *uart_data);
 uint32_t SERVICES_pinmux(uint32_t services_handle, uint8_t port_number, uint8_t pin_number,
 			 uint8_t config_data,
@@ -376,10 +399,9 @@ uint32_t SERVICES_cryptocell_get_rnd(uint32_t services_handle,
 				     int32_t *error_code);
 
 uint32_t SERVICES_cryptocell_get_lcs(uint32_t services_handle,
-				     uint32_t *lcs_state,
-				     int32_t *error_code);
-
-// MbedTLS macros and APIs
+					uint32_t *lcs_state,
+					int32_t *error_code);
+/* MbedTLS macros and APIs */
 uint32_t SERVICES_cryptocell_mbedtls_hardware_poll(uint32_t services_handle,
 						   uint32_t *error_code,
 						   uint32_t data,
@@ -562,6 +584,9 @@ uint32_t SERVICES_power_wakeup_config(uint32_t services_handle,
 uint32_t SERVICES_power_memory_req(uint32_t services_handle,
 				   uint32_t memory_request,
 				   uint32_t *error_code);
+uint32_t SERVICES_power_se_sleep_req(uint32_t services_handle,
+				     uint32_t se_param,
+				     uint32_t *error_code);
 uint32_t
 SERVICES_power_mem_retention_config(uint32_t services_handle,
 				    uint32_t mem_retention,
@@ -595,7 +620,16 @@ SERVICES_power_ldo_voltage_control(uint32_t services_handle,
 				   uint32_t aon_ldo_voltage,
 				   uint32_t *error_code);
 
-// Clocks services
+uint32_t SERVICES_power_setting_configure(uint32_t services_handle,
+					  power_setting_t setting_type,
+					  uint32_t value,
+					  uint32_t *error_code);
+uint32_t SERVICES_power_setting_get(uint32_t services_handle,
+				    power_setting_t setting_type,
+				    uint32_t *value,
+				    uint32_t *error_code);
+
+/* Clocks services */
 uint32_t SERVICES_clocks_select_osc_source(uint32_t services_handle,
 					   oscillator_source_t source,
 					   oscillator_target_t target,
@@ -632,12 +666,10 @@ uint32_t SERVICES_clocks_set_divider(uint32_t services_handle,
 				     uint32_t value,
 				     uint32_t *error_code);
 
-uint32_t SERVICES_clocks_get_apb_frequency(uint32_t services_handle,
-					uint32_t *frequency,
-					uint32_t *error_code);
-uint32_t SERVICES_clocks_get_refclk_frequency(uint32_t services_handle,
-					uint32_t *frequency,
-					uint32_t *error_code);
+uint32_t SERVICES_clocks_setting_get(uint32_t services_handle,
+				     clock_setting_t setting_type,
+				     uint32_t *value,
+				     uint32_t *error_code);
 
 uint32_t SERVICES_pll_initialize(uint32_t services_handle,
 				 uint32_t *error_code);
@@ -674,6 +706,16 @@ uint32_t SERVICES_Boot_Net_Proc(uint32_t services_handle,
 				uint32_t *error_code);
 uint32_t SERVICES_Shutdown_Net_Proc(uint32_t services_handle,
 				uint32_t *error_code);
+/* Update services */
+uint32_t SERVICES_update_stoc(uint32_t services_handle,
+							  uint32_t image_address,
+							  uint32_t image_size,
+							  uint32_t *error_code);
+
+
+
+
+
 
 #ifdef __cplusplus
 }

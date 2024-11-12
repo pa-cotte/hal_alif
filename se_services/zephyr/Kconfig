@@ -11,3 +11,9 @@ config SE_SERVICE_INIT_PRIORITY
 	default 45
 	help
 	  SE service MHUv2 nodes initialization priority.
+
+config SE_SERVICE_RF_CORE_FREQUENCY
+	int "RF Core clock frequency"
+	default 4
+	help
+	  Valid values are 0, 4, 12.

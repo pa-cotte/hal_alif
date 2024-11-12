@@ -59,10 +59,12 @@ typedef union {
 	get_rnd_svc_t get_rnd_svc_d;
 	get_se_revision_t get_se_revision_svc_d;
 	get_toc_number_svc_t get_toc_number_svc_d;
+	get_toc_version_svc_t get_toc_version_svc_d;
 	get_device_part_svc_t get_device_part_svc_d;
 	otp_data_t read_otp_svc_d;
 	get_device_revision_data_t get_device_revision_data_d;
 	net_proc_boot_svc_t boot_svc_d;
+	net_proc_boot_svc_1_101_t boot_1_101_svc_d;
 	net_proc_shutdown_svc_t shutdown_svc_d;
 	set_services_capabilities_t set_services_capabilities_d;
 	aipm_get_run_profile_svc_t get_run_d;
@@ -70,63 +72,12 @@ typedef union {
 	aipm_set_off_profile_svc_t set_off_d;
 	aipm_get_off_profile_svc_t get_off_d;
 	control_cpu_svc_t cpu_reboot_d;
+	se_sleep_svc_t se_sleep_d;
 } se_service_all_svc_t;
 
 static se_service_all_svc_t se_service_all_svc_d;
-
-/* Needed for future APIs */
-#if 0
-static get_toc_version_svc_t get_toc_version_svc_d;
-static generic_svc_t generic_svc_d;
-static get_lcs_svc_t get_lcs_svc_d;
-static mbedtls_trng_hardware_poll_svc_t mbedtls_trng_hardware_poll_svc_d;
-static mbedtls_aes_init_svc_t mbedtls_aes_init_svc_d;
-static mbedtls_aes_set_key_svc_t mbedtls_aes_set_key_svc_d;
-static mbedtls_aes_crypt_svc_t mbedtls_aes_crypt_svc_d;
-static mbedtls_sha_svc_t mbedtls_sha_svc_d;
-static mbedtls_ccm_gcm_set_key_svc_t mbedtls_ccm_gcm_set_key_svc_d;
-static mbedtls_ccm_gcm_crypt_svc_t mbedtls_ccm_gcm_crypt_svc_d;
-static mbedtls_chacha20_crypt_svc_t mbedtls_chacha20_crypt_svc_d;
-static mbedtls_chachapoly_crypt_svc_t mbedtls_chachapoly_crypt_svc_d;
-static mbedtls_poly1305_crypt_svc_t mbedtls_poly1305_crypt_svc_d;
-static mbedtls_cmac_init_setkey_svc_t mbedtls_cmac_init_setkey_svc_d;
-static mbedtls_cmac_update_svc_t mbedtls_cmac_update_svc_d;
-static mbedtls_cmac_finish_svc_t mbedtls_cmac_finish_svc_d;
-static mbedtls_cmac_reset_svc_t mbedtls_cmac_reset_svc_d;
-static process_toc_entry_svc_t process_toc_entry_svc_d;
-static boot_cpu_svc_t boot_cpu_svc_d;
-static control_cpu_svc_t control_cpu_svc_d;
-static pinmux_svc_t pinmux_svc_d;
-static pad_control_svc_t pad_control_svc_d;
-static uart_write_svc_t uart_write_svc_d;
-static ospi_write_key_svc_t ospi_write_key_svc_d;
-static dmpu_svc_t dmpu_svc_d;
-static get_toc_version_svc_t get_toc_version_svc_d;
-static get_toc_via_name_svc_t get_toc_via_name_svc_d;
-static get_toc_via_cpu_id_svc_t get_toc_via_cpu_id_svc_d;
-static get_toc_entry_t get_toc_entry;
-static get_toc_data_t get_toc_data;
-static get_otp_data_t get_otp_data;
-static set_services_capabilities_t set_services_capabilities;
-static stop_mode_request_svc_t stop_mode_request_svc_d;
-static ewic_config_request_svc_t ewic_config_request_svc_d;
-static vbat_wakeup_config_request_svc_t vbat_wakeup_config_request_svc_d;
-static mem_ret_config_request_svc_t mem_ret_config_request_svc_d;
-static mem_power_config_request_svc_t mem_power_config_request_svc_d;
-static host_cpu_clus_pwr_req_t host_cpu_clus_pwr_req;
-static bsys_pwr_req_t bsys_pwr_req;
-static global_standby_request_svc_t global_standby_request_svc_d;
-static m55_vtor_save_request_svc_t m55_vtor_save_request_svc_d;
-static clk_select_clock_source_svc_t clk_select_clock_source_svc_d;
-static clk_set_enable_svc_t clk_set_enable_svc_d;
-static clk_m55_set_frequency_svc_t clk_m55_set_frequency_svc_d;
-static clk_select_sys_clk_source_svc_t clk_select_sys_clk_source_svc_d;
-static clk_set_clk_divider_svc_t clk_set_clk_divider_svc_d;
-static pll_xtal_start_svc_t pll_xtal_start_svc_d;
-static pll_clkpll_start_svc_t pll_clkpll_start_svc_d;
-#endif
-
 static uint32_t global_address;
+static uint32_t se_service_recv_data;
 
 /**
  * @brief Callback API to make sure MHUv2 messages are received.
@@ -168,26 +119,27 @@ static void callback_for_send_msg(const struct device *dev, uint32_t *ptr)
 }
 
 /**
-* @brief Send data to SE through MHUv2.
+ * @brief Send data to SE through MHUv2.
 
-* The Dcache is flushed from address 'ptr' of size
-* dcache_size before sending data to make sure sent or received data are new.
-* The semphores svc_recv_sem and svc_send_sem are used with timeout
-* to make sure data is received or sent.
-*
-* parameters,
-* @ptr         - placeholder for data to be sent.
-* @dcache_size - size of dcache to be flused.
-*
-* returns,
-* 0      - success.
-* err    - unable to send data.
-* -ETIME - semphores are timed out.
-*/
+ * The Dcache is flushed from address 'ptr' of size
+ * dcache_size before sending data to make sure sent or received data are new.
+ * The semphores svc_recv_sem and svc_send_sem are used with timeout
+ * to make sure data is received or sent.
+ *
+ * parameters,
+ * @ptr         - placeholder for data to be sent.
+ * @dcache_size - size of dcache to be flused.
+ *
+ * returns,
+ * 0      - success.
+ * err    - unable to send data.
+ * -ETIME - semphores are timed out.
+ */
 static int send_msg_to_se(uint32_t *ptr, uint32_t dcache_size, uint32_t timeout)
 {
 	int err;
 	int service_id = ((service_header_t *)ptr)->hdr_service_id;
+
 	global_address = local_to_global(ptr);
 	__asm__ volatile("dmb 0xF" ::: "memory");
 	sys_cache_data_flush_range(ptr, dcache_size);
@@ -249,17 +201,17 @@ int se_service_sync(void)
 }
 
 /**
-* @brief Send heartbeat service request to SE to check if SE is alive.
+ * @brief Send heartbeat service request to SE to check if SE is alive.
 
-* Set the service id as SERVICE_MAINTENANCE_HEARTBEAT_ID in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* returns,
-* 0      - success.
-* err    - if unable to send service request.
-* errno  - Unable to unlock mutex.
-*/
+ * Set the service id as SERVICE_MAINTENANCE_HEARTBEAT_ID in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * returns,
+ * 0      - success.
+ * err    - if unable to send service request.
+ * errno  - Unable to unlock mutex.
+ */
 int se_service_heartbeat(void)
 {
 	int err;
@@ -281,26 +233,27 @@ int se_service_heartbeat(void)
 }
 
 /**
-* @brief Send service request to SE to get random number.
+ * @brief Send service request to SE to get random number.
 
-* Set the service id as SERVICE_CRYPTOCELL_GET_RND in the
-* service_header, set send_rnd_length with required random number length and
-* call send_msg_to_se to send the service request. Use svc_mutex to
-* avoid race condition while sending service request.
-*
-* parameters,
-* @buffer - placeholder for random number.
-* @length - length of requested random number.
-*
-* returns,
-* 0        - success, buffer contains random numbers of length 'length'.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * Set the service id as SERVICE_CRYPTOCELL_GET_RND in the
+ * service_header, set send_rnd_length with required random number length and
+ * call send_msg_to_se to send the service request. Use svc_mutex to
+ * avoid race condition while sending service request.
+ *
+ * parameters,
+ * @buffer - placeholder for random number.
+ * @length - length of requested random number.
+ *
+ * returns,
+ * 0        - success, buffer contains random numbers of length 'length'.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 {
 	int err, resp_err = -1;
+
 	if (!buffer) {
 		LOG_ERR("Invalid argument\n");
 		return -EINVAL;
@@ -332,21 +285,21 @@ int se_service_get_rnd_num(uint8_t *buffer, uint16_t length)
 }
 
 /**
-* @brief Send service request to SE to get number of table of contents (TOC).
+ * @brief Send service request to SE to get number of table of contents (TOC).
 
-* Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER in the
-* service_header and call send_msg_to_se to send the service request.
-* Use svc_mutex to avoid race condition while sending service request.
-*
-* parameters,
-* @ptoc - placeholder for TOC number.
-*
-* returns,
-* 0        - success, ptoc contains number of TOC.
-* err      - if unable to send service request.
-* errno    - unable to unlock mutex.
-* resp_err - error in service response for the requested service.
-*/
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_NUMBER in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @ptoc - placeholder for TOC number.
+ *
+ * returns,
+ * 0        - success, ptoc contains number of TOC.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
 int se_service_get_toc_number(uint32_t *ptoc)
 {
 	int err, resp_err = -1;
@@ -382,6 +335,56 @@ int se_service_get_toc_number(uint32_t *ptoc)
 	return 0;
 }
 
+/**
+ * @brief Send service request to SE to get TOC Version.
+
+ * Set the service id as SERVICE_SYSTEM_MGMT_GET_TOC_VERSION in the
+ * service_header and call send_msg_to_se to send the service request.
+ * Use svc_mutex to avoid race condition while sending service request.
+ *
+ * parameters,
+ * @pversion - placeholder for TOC Version.
+ *
+ * returns,
+ * 0        - success, ptoc contains the TOC version.
+ * err      - if unable to send service request.
+ * errno    - unable to unlock mutex.
+ * resp_err - error in service response for the requested service.
+ */
+int se_service_get_toc_version(uint32_t *pversion)
+{
+	int err, resp_err;
+
+	if (!pversion) {
+		LOG_ERR("Invalid argument\n");
+		return -EINVAL;
+	}
+
+	err = k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT));
+	if (err) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", err);
+		return err;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+	se_service_all_svc_d.get_toc_version_svc_d.header.hdr_service_id =
+		SERVICE_SYSTEM_MGMT_GET_TOC_VERSION;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.get_toc_version_svc_d,
+			     sizeof(se_service_all_svc_d.get_toc_version_svc_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.get_toc_version_svc_d.resp_error_code;
+
+	*pversion = se_service_all_svc_d.get_toc_version_svc_d.resp_version;
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
 /**
  * @brief Send service request to SE to get revision of SE firmware.
  *
@@ -748,24 +751,42 @@ int se_system_get_eui_extension(bool is_eui48, uint8_t *eui_extension)
  */
 int se_service_boot_es0(uint8_t *nvds_buff, uint16_t nvds_size)
 {
-	int err, resp_err = -1;
+	int err, resp_err;
+	uint32_t version;
 
-	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
-		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
-		return errno;
+	err = se_service_get_toc_version(&version);
+	if (err) {
+		return err;
+	}
+	LOG_DBG("toc version: %x", version);
+
+	err = k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT));
+	if (err) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", err);
+		return err;
 	}
 	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
-	se_service_all_svc_d.boot_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_BOOT_SET_ARGS;
 
+	se_service_all_svc_d.boot_svc_d.header.hdr_service_id = SERVICE_EXTSYS0_BOOT_SET_ARGS;
 	se_service_all_svc_d.boot_svc_d.send_nvds_src_addr = local_to_global(nvds_buff);
 	se_service_all_svc_d.boot_svc_d.send_nvds_dst_addr = 0x501D0000;
 	se_service_all_svc_d.boot_svc_d.send_nvds_copy_len = nvds_size;
 	se_service_all_svc_d.boot_svc_d.send_trng_dst_addr = 0x501D0200;
 	se_service_all_svc_d.boot_svc_d.send_trng_len = 64;
+	if (version > 0x01650000) {
+		/* additional fields are added only when SE supports it */
+		se_service_all_svc_d.boot_svc_d.send_es0_clock_select =
+			CONFIG_SE_SERVICE_RF_CORE_FREQUENCY;
+	}
 
 	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.boot_svc_d,
 			     sizeof(se_service_all_svc_d.boot_svc_d), SERVICE_TIMEOUT);
-	resp_err = se_service_all_svc_d.boot_svc_d.resp_error_code;
+
+	if (version > 0x01650000) {
+		resp_err = se_service_all_svc_d.boot_svc_d.resp_error_code;
+	} else {
+		resp_err = se_service_all_svc_d.boot_1_101_svc_d.resp_error_code;
+	}
 
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -862,10 +883,6 @@ int se_service_get_run_cfg(run_profile_t *pp)
 	pp->phy_pwr_gating = se_service_all_svc_d.get_run_d.resp_phy_pwr_gating;
 	pp->power_domains = se_service_all_svc_d.get_run_d.resp_power_domains;
 	pp->vdd_ioflex_3V3 = se_service_all_svc_d.get_run_d.resp_vdd_ioflex_3V3;
-	pp->wakeup_events = se_service_all_svc_d.get_run_d.resp_wakeup_events;
-	pp->ewic_cfg = se_service_all_svc_d.get_run_d.resp_ewic_cfg;
-	pp->vtor_address = se_service_all_svc_d.get_run_d.resp_vtor_address;
-	pp->vtor_address_ns = se_service_all_svc_d.get_run_d.resp_vtor_address_ns;
 	k_mutex_unlock(&svc_mutex);
 
 	return 0;
@@ -893,10 +910,6 @@ int se_service_set_run_cfg(run_profile_t *pp)
 	se_service_all_svc_d.set_run_d.send_phy_pwr_gating = pp->phy_pwr_gating;
 	se_service_all_svc_d.set_run_d.send_power_domains = pp->power_domains;
 	se_service_all_svc_d.set_run_d.send_vdd_ioflex_3V3 = pp->vdd_ioflex_3V3;
-	se_service_all_svc_d.set_run_d.send_wakeup_events = pp->wakeup_events;
-	se_service_all_svc_d.set_run_d.send_ewic_cfg = pp->ewic_cfg;
-	se_service_all_svc_d.set_run_d.send_vtor_address = pp->vtor_address;
-	se_service_all_svc_d.set_run_d.send_vtor_address_ns = pp->vtor_address_ns;
 
 	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_run_d,
 			     sizeof(se_service_all_svc_d.set_run_d), SERVICE_TIMEOUT);
@@ -946,7 +959,6 @@ int se_service_get_off_cfg(off_profile_t *wp)
 	wp->aon_clk_src = se_service_all_svc_d.get_off_d.resp_aon_clk_src;
 	wp->stby_clk_src = se_service_all_svc_d.get_off_d.resp_stby_clk_src;
 	wp->stby_clk_freq = se_service_all_svc_d.get_off_d.resp_stby_clk_freq;
-	wp->sysref_clk_src = 0; /* currently unused */
 	wp->ip_clock_gating = se_service_all_svc_d.get_off_d.resp_ip_clock_gating;
 	wp->phy_pwr_gating = se_service_all_svc_d.get_off_d.resp_phy_pwr_gating;
 	wp->vdd_ioflex_3V3 = se_service_all_svc_d.get_off_d.resp_vdd_ioflex_3V3;
@@ -975,7 +987,7 @@ int se_service_set_off_cfg(off_profile_t *wp)
 	se_service_all_svc_d.set_off_d.send_stby_clk_src = wp->stby_clk_src;
 	se_service_all_svc_d.set_off_d.send_stby_clk_freq = wp->stby_clk_freq;
 	se_service_all_svc_d.set_off_d.send_ip_clock_gating = wp->ip_clock_gating;
-	se_service_all_svc_d.set_off_d.send_phy_pwr_gating = wp->phy_pwr_gating; /*typedef */
+	se_service_all_svc_d.set_off_d.send_phy_pwr_gating = wp->phy_pwr_gating;
 	se_service_all_svc_d.set_off_d.send_vdd_ioflex_3V3 = wp->vdd_ioflex_3V3;
 	se_service_all_svc_d.set_off_d.send_vtor_address = wp->vtor_address;
 	se_service_all_svc_d.set_off_d.send_vtor_address_ns = wp->vtor_address_ns;
@@ -985,6 +997,35 @@ int se_service_set_off_cfg(off_profile_t *wp)
 	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.set_off_d,
 			     sizeof(se_service_all_svc_d.set_off_d), SERVICE_TIMEOUT);
 	resp_err = se_service_all_svc_d.set_off_d.resp_error_code;
+
+	k_mutex_unlock(&svc_mutex);
+	if (err) {
+		LOG_ERR("%s failed with %d\n", __func__, err);
+		return err;
+	}
+	if (resp_err) {
+		LOG_ERR("%s: received response error = %d\n", __func__, resp_err);
+		return resp_err;
+	}
+	return 0;
+}
+
+int se_service_se_sleep_req(uint32_t param)
+{
+	int err, resp_err = -1;
+
+	if (k_mutex_lock(&svc_mutex, K_MSEC(MUTEX_TIMEOUT))) {
+		LOG_ERR("Unable to lock mutex (errno = %d)\n", errno);
+		return errno;
+	}
+	memset(&se_service_all_svc_d, 0, sizeof(se_service_all_svc_d));
+
+	se_service_all_svc_d.se_sleep_d.send_param = param;
+	se_service_all_svc_d.se_sleep_d.header.hdr_service_id = SERVICE_POWER_SE_SLEEP_REQ_ID;
+
+	err = send_msg_to_se((uint32_t *)&se_service_all_svc_d.se_sleep_d,
+				sizeof(se_service_all_svc_d.se_sleep_d), SERVICE_TIMEOUT);
+	resp_err = se_service_all_svc_d.se_sleep_d.resp_error_code;
 
 	k_mutex_unlock(&svc_mutex);
 	if (err) {
@@ -1113,7 +1154,7 @@ static int se_service_mhuv2_nodes_init(void)
 		printk("MHU devices not ready\n");
 		return -ENODEV;
 	}
-	mhuv2_ipm_rb(recv_dev, callback_for_receive_msg, NULL);
+	mhuv2_ipm_rb(recv_dev, callback_for_receive_msg, &se_service_recv_data);
 	mhuv2_ipm_rb(send_dev, callback_for_send_msg, NULL);
 	return 0;
 }

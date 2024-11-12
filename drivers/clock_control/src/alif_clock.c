@@ -54,6 +54,22 @@ uint32_t alif_get_input_clock(uint32_t clock_name)
 	case ALIF_LPTIMERn_128K_CLK(2):
 	case ALIF_LPTIMERn_128K_CLK(3):
 		return ALIF_CLOCK_128K_CLK_FREQ;
+	case ALIF_LPTIMERn_LPTMRn_IO_PIN(0):
+#if CONFIG_COUNTER_SNPS_DW
+		return CONFIG_LPTIMER0_EXT_CLK_FREQ;
+#endif
+	case ALIF_LPTIMERn_LPTMRn_IO_PIN(1):
+#if CONFIG_COUNTER_SNPS_DW
+		return CONFIG_LPTIMER1_EXT_CLK_FREQ;
+#endif
+	case ALIF_LPTIMERn_LPTMRn_IO_PIN(2):
+#if CONFIG_COUNTER_SNPS_DW
+		return CONFIG_LPTIMER2_EXT_CLK_FREQ;
+#endif
+	case ALIF_LPTIMERn_LPTMRn_IO_PIN(3):
+#if CONFIG_COUNTER_SNPS_DW
+		return CONFIG_LPTIMER3_EXT_CLK_FREQ;
+#endif
 	default:
 		return 0;
 	}

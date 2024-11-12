@@ -24,70 +24,15 @@ extern "C" {
 /******************************************************************************
  *  I N C L U D E   F I L E S
  *****************************************************************************/
+#include <stdint.h>
 
 /*******************************************************************************
  *  M A C R O   D E F I N E S
  ******************************************************************************/
-/**
- * Version   JIRA         Description
- * 0.0.43                 CMSIS V1.0.0
- * 0.0.42   SE-2176       Reduce the size of the packet buffer in the services
- *                        examples
- * 0.0.41
- * 0.0.40   SE-2111       [aiPM] Define the parameter VDD_IOFLEX_3V3 as an enum
- * 0.0.39   SE-2077       SERVICES switch to CMSIS V0.9.4
- * 0.0.38   SE-2047       SERVICES switch to CMSIS V0.9.3
- * 0.0.37   SE-1951       Scalable HFRC and HXTAL frequencies
- * 0.0.36   SE-1961       SERVICES switch to CMSIS V0.9.1
- *          SE-1960       arm clang startup issues
- * 0.0.35   SE-1924       SERVICES build switch to CMake
- *          SE-1923       addition of aiPM Service API - RUN
- * 0.0.34   SE-1887       addition of amPM Service API - OFF
- *          SE-1900       retrieve full revision info
- * 0.0.33                 edits for simulation testing
- * 0.0.32   SE-1822       Add a new service call SERVICES_boot_set_vtor
- *          SE-1857       Use defines to support different power test variations
- * 0.0.31   SE-1813       Warnings fixes
- * 0.0.30   SE-1782       Fix services-he-hp-a32-xip.json HP address
- * 0.0.29   SE-1731       Consistent Error handling
- *          SE-1696       Memory Power On Off
- *          SE-1737       Add boot services and clock tests
- * 0.0.28   SE-1709       Add new warnings and do cleanup
- * 0.0.27   SE-1709       Add new warnings and do cleanup
- * 0.0.26   SE-1608       Retention fine grained control
- *          SE-1676       CMSIS update build options
- *          SE-1616       Add SERVICES_INVALID_ADDRESS error code
- * 0.0.25   SE-777        Clocks apis
- *          SE-1628       Retention APIs
- *          SE-1497       TEST Services initialize polling
- * 0.0.24   SE-1645       GCC build for m55_power
- *          SE-1612       Query TOC by cpu id returns N entries
- * 0.0.23   SE-1585       CMSIS integration
- * 0.0.22   SE-1562       Simplify error code usage at the services transport layer
- * 0.0.21   SE-1548       Added build support for B
- * 0.0.20   SE-1512       Updated ALIF License
- * 0.0.19   SE-1440       Adding CMake build
- * 0.0.18   SE-1463       Stop mode power profile
- * 0.0.17   SE-1443       Fixed unimplemented function warnings in GCC build
- * 0.0.16   SE-<>         Update to RTSS V0.4.1
- * 0.0.15   SE-1423       Added examples installation, fixed build flags
- * 0.0.14   SE-1370       Addition of XIP examples
- * 0.0.13   SE-1272       Examples common directory
- * 0.0.12   SE-1290       get otp data (for real!)
- * 0.0.11   SE-1265       get all toc info
- *          SE-859        get otp data
- * 0.0.10   SE-1246       standardized variables for send/resp
- * 0.0.9    SE-1214       bounds checks for UART prints
- * 0.0.8    SE-1099       Added firmware version id
- * 0.0.7    SE-1165       mbed TLS accelerators
- * 0.0.6    SE-1173       Added enable / disable debug status
- * 0.0.5    SE-1144       Service API error code added
- * 0.0.4    SE-700        Service BOOT reset added
- * 0.0.3    SE-827        RPC Parameter changes
- * 0.0.2    SE-708        First re-factoring
- * 0.0.1                  First implementation
- */
-#define SE_SERVICES_VERSION_STRING                 "0.0.43"
+#define SE_SERVICES_VERSION_STRING                 "0.50.1"
+#define SE_SERVICES_VERSION_MAJOR                  0
+#define SE_SERVICES_VERSION_MINOR                  50
+#define SE_SERVICES_VERSION_PATCH                  1
 
 #define IMAGE_NAME_LENGTH                          8
 #define VERSION_RESPONSE_LENGTH                    80
@@ -108,13 +53,13 @@ extern "C" {
  * Transport layer header structure, common for all services
  */
 
- /**
+/**
  * @struct service_header_t
  */
 typedef struct {
-	volatile uint16_t hdr_service_id; // Requested Service ID
-	volatile uint16_t hdr_flags;      // Request flags
-	volatile uint16_t hdr_error_code; // Transport layer error code
+	volatile uint16_t hdr_service_id; /* Requested Service ID */
+	volatile uint16_t hdr_flags;      /* Request flags */
+	volatile uint16_t hdr_error_code; /* Transport layer error code */
 	volatile uint16_t hdr_padding;
 } service_header_t;
 
@@ -122,13 +67,20 @@ typedef struct {
  *  Service format definitions
  ******************************************************************************/
 
-// Generic APIs
+/* Generic APIs */
 typedef struct {
 	service_header_t header;
 	volatile int     resp_error_code;
 } generic_svc_t;
 
-// AI PM APIs
+/* SE Deep Sleep */
+typedef struct {
+	service_header_t header;
+	volatile uint32_t  send_param;
+	volatile uint32_t  resp_error_code;
+} se_sleep_svc_t;
+
+/* AI PM APIs */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_power_domains;
@@ -142,10 +94,6 @@ typedef struct {
 	volatile uint32_t send_ip_clock_gating;
 	volatile uint32_t send_phy_pwr_gating;
 	volatile uint32_t send_vdd_ioflex_3V3;
-	volatile uint32_t send_wakeup_events;
-	volatile uint32_t send_ewic_cfg;
-	volatile uint32_t send_vtor_address;
-	volatile uint32_t send_vtor_address_ns;
 	volatile int      resp_error_code;
 } aipm_set_run_profile_svc_t;
 
@@ -162,10 +110,6 @@ typedef struct {
 	volatile uint32_t resp_ip_clock_gating;
 	volatile uint32_t resp_phy_pwr_gating;
 	volatile uint32_t resp_vdd_ioflex_3V3;
-	volatile uint32_t resp_wakeup_events;
-	volatile uint32_t resp_ewic_cfg;
-	volatile uint32_t resp_vtor_address;
-	volatile uint32_t resp_vtor_address_ns;
 	volatile int      resp_error_code;
 } aipm_get_run_profile_svc_t;
 
@@ -207,28 +151,53 @@ typedef struct {
 	volatile int      resp_error_code;
 } aipm_get_off_profile_svc_t;
 
-// Extsys0 services
+/* Extsys0 services */
 typedef struct {
-  service_header_t header;
-  volatile uint32_t send_nvds_src_addr;
-  volatile uint32_t send_nvds_dst_addr;
-  volatile uint32_t send_nvds_copy_len;
-  volatile uint32_t send_trng_dst_addr;
-  volatile uint32_t send_trng_len;
-  volatile int      resp_error_code;
+	service_header_t header;
+	volatile uint32_t send_nvds_src_addr;
+	volatile uint32_t send_nvds_dst_addr;
+	volatile uint32_t send_nvds_copy_len;
+	volatile uint32_t send_trng_dst_addr;
+	volatile uint32_t send_trng_len;
+	volatile int      resp_error_code;
+} net_proc_boot_svc_1_101_t;
+
+#if defined(CONFIG_SOC_SERIES_BALLETTO_B1)
+
+/* ES0 CPU clock frequencies */
+#define ES0_CLOCK_16MHZ   0
+#define ES0_CLOCK_24MHZ   4
+#define ES0_CLOCK_48MHZ   0xC
+#endif
+
+typedef struct {
+	service_header_t header;
+	volatile uint32_t send_nvds_src_addr;
+	volatile uint32_t send_nvds_dst_addr;
+	volatile uint32_t send_nvds_copy_len;
+	volatile uint32_t send_trng_dst_addr;
+	volatile uint32_t send_trng_len;
+	volatile uint32_t send_es0_clock_select;
+	volatile int      resp_error_code;
 } net_proc_boot_svc_t;
 
 typedef struct {
-  service_header_t header;
-  volatile int     resp_error_code;
+	service_header_t header;
+	volatile int     resp_error_code;
 } net_proc_shutdown_svc_t;
 
-// Crypto Services
+typedef struct {
+	service_header_t header;
+	volatile int     resp_error_code;
+} extsys1_wakeup_svc_t;
 
-// Get Random Data
+/* Crypto Services */
 
-// MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt is 1024,
-// it was decided that we will use a smaller buffer
+/* Get Random Data */
+
+/* MBEDTLS_CTR_DRBG_MAX_REQUEST in cryptocell-rt is 1024,
+ * it was decided that we will use a smaller buffer
+ */
 #define MAX_RND_LENGTH 256
 typedef struct {
 	service_header_t header;
@@ -237,14 +206,14 @@ typedef struct {
 	volatile int       resp_error_code;
 } get_rnd_svc_t;
 
-// Get LCS
+/* Get LCS */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  resp_lcs;
 	volatile uint32_t  resp_error_code;
 } get_lcs_svc_t;
 
-// MBEDTLS TRNG HARDWARE POLL
+/* MBEDTLS TRNG HARDWARE POLL */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_data_addr;
@@ -254,13 +223,13 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_trng_hardware_poll_svc_t;
 
-// MBEDTLS AES INIT
+/* MBEDTLS AES INIT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
 } mbedtls_aes_init_svc_t;
 
-// MBEDTLS AES SET KEY
+/* MBEDTLS AES SET KEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -270,12 +239,12 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_aes_set_key_svc_t;
 
-// MBEDTLS AES CRYPT
+/* MBEDTLS AES CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
-	volatile uint32_t send_crypt_type; // ECB, CBC, CTR_OFB
-	volatile uint32_t send_mode;       // Encrypt, Decrypt
+	volatile uint32_t send_crypt_type; /* ECB, CBC, CTR_OFB */
+	volatile uint32_t send_mode;       /* Encrypt, Decrypt */
 	volatile uint32_t send_length;
 	volatile uint32_t send_iv_addr;
 	volatile uint32_t send_input_addr;
@@ -283,17 +252,17 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_aes_crypt_svc_t;
 
-// MBEDTLS SHA
+/* MBEDTLS SHA */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
-	volatile uint32_t send_sha_type;  // SHA1, SHA224, SHA256
+	volatile uint32_t send_sha_type;  /* SHA1, SHA224, SHA256 */
 	volatile uint32_t send_data_addr;
 	volatile uint32_t send_data_length;
 	volatile uint32_t resp_error_code;
 } mbedtls_sha_svc_t;
 
-// MBEDTLS CCM/GCM SET KEY
+/* MBEDTLS CCM/GCM SET KEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -304,7 +273,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_ccm_gcm_set_key_svc_t;
 
-// MBEDTLS CCM/GCM CRYPT
+/* MBEDTLS CCM/GCM CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -321,7 +290,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_ccm_gcm_crypt_svc_t;
 
-// MBEDTLS CHACHA20 CRYPT
+/* MBEDTLS CHACHA20 CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_key_addr;
@@ -333,7 +302,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_chacha20_crypt_svc_t;
 
-// MBEDTLS CHACHAPOLY CRYPT
+/* MBEDTLS CHACHAPOLY CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -348,7 +317,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_chachapoly_crypt_svc_t;
 
-// MBEDTLS POLY1305 CRYPT
+/* MBEDTLS POLY1305 CRYPT */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_key_addr;
@@ -358,7 +327,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_poly1305_crypt_svc_t;
 
-// MBEDTLS CMAC INIT/SETKEY
+/* MBEDTLS CMAC INIT/SETKEY */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -367,7 +336,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_init_setkey_svc_t;
 
-// MBEDTLS CMAC UPDATE
+/* MBEDTLS CMAC UPDATE */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -376,7 +345,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_update_svc_t;
 
-// MBEDTLS CMAC FINISH
+/* MBEDTLS CMAC FINISH */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -384,7 +353,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } mbedtls_cmac_finish_svc_t;
 
-// MBEDTLS CMAC RESET
+/* MBEDTLS CMAC RESET */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_context_addr;
@@ -392,16 +361,16 @@ typedef struct {
 } mbedtls_cmac_reset_svc_t;
 
 
-// Boot Services
+/* Boot Services */
 
-// Process TOC Entry
+/* Process TOC Entry */
 typedef struct {
 	service_header_t header;
 	volatile uint8_t   send_entry_id[IMAGE_NAME_LENGTH];
 	volatile uint32_t  resp_error_code;
 } process_toc_entry_svc_t;
 
-// Boot CPU
+/* Boot CPU */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_cpu_id;
@@ -409,7 +378,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } boot_cpu_svc_t;
 
-// Control CPU
+/* Control CPU */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_cpu_id;
@@ -420,7 +389,7 @@ typedef struct {
  * Application Services
  */
 
-// Pimux
+/* Pinmux */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -429,7 +398,7 @@ typedef struct {
 	volatile uint32_t resp_error_code;
 } pinmux_svc_t;
 
-// Pad Control
+/* Pad Control */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_port_num;
@@ -446,7 +415,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } uart_write_svc_t;
 
-// OSPI write key
+/* OSPI write key */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t  send_command;
@@ -454,7 +423,7 @@ typedef struct {
 	volatile uint32_t  resp_error_code;
 } ospi_write_key_svc_t;
 
-// Perform the DMPU function, to advance from DM to SE LCS
+/* Perform the DMPU function, to advance from DM to SE LCS */
 typedef struct {
 	service_header_t header;
 	volatile uint32_t send_assets_addr;
@@ -497,27 +466,24 @@ typedef struct {
 } get_toc_number_svc_t;
 
 /**
- * @struct get_toc_via_name_svc_t
- * Get TOC via name
+ * @struct get_toc_via_name_t
+ * Get TOC via Name
  */
 typedef struct {
-	service_header_t header;
-	volatile uint8_t   send_cpu_name[IMAGE_NAME_LENGTH];
+	service_header_t   header;
+	volatile  uint8_t  send_name[IMAGE_NAME_LENGTH];
 	volatile uint32_t  resp_error_code;
-} get_toc_via_name_svc_t;
+} get_toc_via_name_t;
 
 /**
- * @struct get_toc_via_cpu_id_svc_t
+ * @struct get_toc_via_cpuid_svc_t
  * Get TOC via CPU ID
  */
 typedef struct {
-	service_header_t header;
-	volatile uint32_t  send_cpu_id;
-	volatile uint8_t   resp_image_identifier[IMAGE_NAME_LENGTH];
-	volatile uint32_t  resp_image_version;
-	volatile uint32_t  resp_image_flags;
+	service_header_t   header;
+	volatile uint32_t  send_cpuid;
 	volatile uint32_t  resp_error_code;
-} get_toc_via_cpu_id_svc_t;
+} get_toc_via_cpuid_t;
 
 /**
  * @struct get_toc_entry_t
@@ -540,9 +506,8 @@ typedef struct {
  */
 typedef struct {
 	service_header_t header;
-	volatile uint32_t send_cpu_id;
-	get_toc_entry_t resp_toc_entry[15];
-	volatile uint32_t resp_number_of_toc_entries;
+	volatile uint32_t send_entry_idx;
+	get_toc_entry_t resp_toc_entry;
 	volatile uint32_t resp_error_code;
 } get_toc_data_t;
 
@@ -633,9 +598,9 @@ typedef struct {
 	uint16_t pad;
 } stop_mode_request_svc_t;
 
-//----------------------------------------------------------------
-// EWIC configuration Request
-//
+/**
+ * EWIC configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_ewic_source;
@@ -643,9 +608,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } ewic_config_request_svc_t;
 
-//----------------------------------------------------------------
-// VBAT wakeup configuration Request
-//
+/**
+ * VBAT wakeup configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_vbat_wakeup_source;
@@ -653,9 +618,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } vbat_wakeup_config_request_svc_t;
 
-//----------------------------------------------------------------
-// SE memory retention configuration Request
-//
+/**
+ * SE memory retention configuration Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_mem_retention;
@@ -663,18 +628,18 @@ typedef struct {
 	uint32_t resp_error_code;
 } mem_ret_config_request_svc_t;
 
-//----------------------------------------------------------------
-// SRAM 0 1 MRAM Power On Off
-//
+/**
+ * SRAM 0 1 MRAM Power On Off
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t send_memory_power;
 	uint32_t resp_error_code;
 } mem_power_config_request_svc_t;
 
-//----------------------------------------------------------------
-// Global standby mode Request
-//
+/**
+ * Global standby mode Request
+ */
 typedef union {
 	struct {
 		uint16_t pwr_req :1;
@@ -709,9 +674,9 @@ typedef struct {
 	uint32_t resp_error_code;
 } global_standby_request_svc_t;
 
-//----------------------------------------------------------------
-// M55-HE VTOR save Request
-//
+/**
+ * M55-HE VTOR save Request
+ */
 typedef struct {
 	service_header_t header;
 	uint32_t ns_vtor_addr;
@@ -720,30 +685,31 @@ typedef struct {
 	uint32_t resp_error_code;
 } m55_vtor_save_request_svc_t;
 
-//----------------------------------------------------------------
-// DCDC voltage control Request
-//
+/**
+ * DCDC voltage control Request
+ */
 typedef struct {
 	service_header_t header;
-	uint32_t dcdc_vout_sel; // bit1:0
-	uint32_t dcdc_vout_trim; // bit3:0
+	uint32_t dcdc_vout_sel; /* bit1:0 */
+	uint32_t dcdc_vout_trim; /* bit3:0 */
 	uint32_t resp_error_code;
 } dcdc_voltage_request_svc_t;
 
-//----------------------------------------------------------------
-// LDO voltage control Request
-//
+/**
+ * LDO voltage control Request
+ */
 typedef struct {
 	service_header_t header;
-	uint32_t ret_ldo_voltage; // bit3:0
-	uint32_t aon_ldo_voltage; // bit3:0
+	uint32_t ret_ldo_voltage; /* bit3:0 */
+	uint32_t aon_ldo_voltage; /* bit3:0 */
 	uint32_t resp_error_code;
 } ldo_voltage_request_svc_t;
 
-//----------------------------------------------------------------
-// Clocks API
+/**
+ * Clocks API
+ */
 
-// struct for clock selection APIs
+/* struct for clock selection APIs */
 typedef struct {
 	service_header_t header;
 	uint32_t send_clock_source;
@@ -751,7 +717,7 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_select_clock_source_svc_t;
 
-// enable or disable a clock
+/* enable or disable a clock */
 typedef struct {
 	service_header_t header;
 	uint32_t send_clock_type;
@@ -759,21 +725,21 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_set_enable_svc_t;
 
-// struct for M55 frequency selection APIs
+/* struct for M55 frequency selection APIs */
 typedef struct {
 	service_header_t header;
 	uint32_t send_frequency;
 	uint32_t resp_error_code;
 } clk_m55_set_frequency_svc_t;
 
-// struct for system clock source selection (A32 and AXI)
+/* struct for system clock source selection (A32 and AXI) */
 typedef struct {
 	service_header_t header;
 	uint32_t send_source;
 	uint32_t resp_error_code;
 } clk_select_sys_clk_source_svc_t;
 
-// struct for setting clock dividers
+/* struct for setting clock dividers */
 typedef struct {
 	service_header_t header;
 	uint32_t send_divider;
@@ -781,23 +747,23 @@ typedef struct {
 	uint32_t resp_error_code;
 } clk_set_clk_divider_svc_t;
 
-// struct for returning clock registers
+/* struct for returning clock registers */
 typedef struct {
-  service_header_t header;
-  volatile uint32_t cgu_osc_ctrl;
-  volatile uint32_t cgu_pll_sel;
-  volatile uint32_t cgu_clk_ena;
-  volatile uint32_t cgu_escclk_sel;
-  volatile uint32_t systop_clk_div;
-  volatile uint32_t hostcpuclk_ctrl;
-  volatile uint32_t hostcpuclk_div0;
-  volatile uint32_t hostcpuclk_div1;
-  volatile uint32_t aclk_ctrl;
-  volatile uint32_t aclk_div0;
-  volatile uint32_t resp_error_code;
+	service_header_t header;
+	volatile uint32_t cgu_osc_ctrl;
+	volatile uint32_t cgu_pll_sel;
+	volatile uint32_t cgu_clk_ena;
+	volatile uint32_t cgu_escclk_sel;
+	volatile uint32_t systop_clk_div;
+	volatile uint32_t hostcpuclk_ctrl;
+	volatile uint32_t hostcpuclk_div0;
+	volatile uint32_t hostcpuclk_div1;
+	volatile uint32_t aclk_ctrl;
+	volatile uint32_t aclk_div0;
+	volatile uint32_t resp_error_code;
 } clk_get_clocks_svc_t;
 
-// struct for starting the external HF crystall
+/* struct for starting the external HF crystal */
 typedef struct {
 	service_header_t header;
 	uint32_t send_faststart;
@@ -806,13 +772,37 @@ typedef struct {
 	uint32_t resp_error_code;
 } pll_xtal_start_svc_t;
 
-// struct for starting the PLL
+/* struct for starting the PLL */
 typedef struct {
 	service_header_t header;
 	uint32_t send_faststart;
 	uint32_t send_delay_count;
 	uint32_t resp_error_code;
 } pll_clkpll_start_svc_t;
+
+/* struct for updating the STOC */
+typedef struct {
+	service_header_t header;
+	uint32_t send_image_address;
+	uint32_t send_image_size;
+	uint32_t resp_error_code;
+} update_stoc_svc_t;
+
+/* Power Get/Configure API */
+typedef struct {
+	service_header_t header;
+	volatile uint32_t send_setting_type;
+	volatile uint32_t value;
+	volatile uint32_t resp_error_code;
+} power_setting_svc_t;
+
+/* Clock Setting Get API */
+typedef struct {
+	service_header_t header;
+	volatile uint32_t send_setting_type;
+	volatile uint32_t value;
+	volatile uint32_t resp_error_code;
+} clock_setting_svc_t;
 
 /*******************************************************************************
  *  G L O B A L   D E F I N E S
@@ -824,12 +814,10 @@ typedef struct {
 
 uintptr_t SERVICES_prepare_packet_buffer(uint32_t size);
 
-typedef void (*SERVICES_sender_callback) (uint32_t sender_id, uint32_t data);
-
 uint32_t SERVICES_send_msg(uint32_t services_handle, uint32_t services_data);
 uint32_t SERVICES_send_request(uint32_t services_handle,
-				uint16_t service_id,
-				SERVICES_sender_callback callback);
+							   uint16_t service_id,
+							   uint32_t service_timeout);
 
 #ifdef __cplusplus
 }
