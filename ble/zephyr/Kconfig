@@ -1,0 +1,38 @@
+# Copyright 2023 Alif Semiconductor
+
+# Bluetooth related configurations
+
+if ALIF_BLE_HOST
+
+menu "Alif BLE stack"
+
+config ALIF_BLE_HOST_PATCHING
+	bool "Apply a patch to the Alif BLE host stack"
+	default n
+	help
+	  Apply a patch to the BLE host stack in ROM. This enables ROM functions to be overridden
+	  using a patched version.
+
+config ALIF_BLE_HOST_PATCH_FILE
+	string
+	depends on ALIF_BLE_HOST_PATCHING
+	  default "${ZEPHYR_ALIF_MODULE_DIR}/ble/rom_ble_stack.patch.elf"
+
+config ALIF_BLE_HOST_THREAD_PRIORITY
+	int "Priority for thread running the BLE host stack"
+	default 5
+
+config ALIF_BLE_HOST_THREAD_STACKSIZE
+	int "Stack size for thread running the BLE host stack"
+	default 4096
+
+config ALIF_BLE_HOST_ADDL_PRF_HEAPSIZE
+	int "Additional heap size required for supported profiles"
+	default 0
+	help
+	  Depending on the profiles enabled in the stack the profile
+	  heap size allocated needs to be adjusted.
+
+endmenu
+
+endif
