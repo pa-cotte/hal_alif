@@ -198,4 +198,37 @@ struct alif_802154_frame_parser {
 	bool packet_ready;
 };
 
+#define VENDOR_IE_OUI_LENGTH 3
+
+struct alif_802154_header_ie_vendor_specific {
+	uint8_t vendor_oui[VENDOR_IE_OUI_LENGTH];
+	uint8_t *vendor_specific_info;
+};
+
+struct alif_802154_header_ie_rendezvous_time {
+	uint16_t rendezvous_time;
+	uint16_t wakeup_interval;
+	bool full_info;
+};
+
+struct alif_802154_header_ie_csl {
+	uint16_t csl_phase;
+	uint16_t csl_period;
+	uint16_t csl_rendezvous_time;
+	bool full_info;
+};
+
+struct alif_802154_header_ie {
+	uint16_t length;
+	uint16_t element_id_low;
+	uint16_t element_id_high;
+	uint16_t type;
+	uint8_t content_type;
+	union {
+		struct alif_802154_header_ie_vendor_specific vendor_specific;
+		struct alif_802154_header_ie_csl csl;
+		struct alif_802154_header_ie_rendezvous_time rendezvous_time;
+	} content;
+};
+
 #endif /* ALIF_MAC154_DEF_H_ */

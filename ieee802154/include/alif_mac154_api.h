@@ -505,9 +505,10 @@ alif_mac154_csl_phase_get(struct alif_mac154_csl_phase *p_csl_phase_resp);
  *		ALIF_MAC154_STATUS_FAILED	Operation failed
  *		ALIF_MAC154_STATUS_COMM_FAILURE	Module not connected
  */
-enum alif_mac154_status_code
-alif_mac154_ack_header_ie_set(uint16_t short_address, const uint8_t *p_extended_address,
-			      bool delete_ie, const struct ieee802154_header_ie *p_header_ie);
+enum alif_mac154_status_code alif_mac154_ack_header_ie_set(uint16_t short_address,
+							   const uint8_t *p_extended_address,
+							   bool delete_ie,
+							   const struct alif_802154_header_ie *ie_info);
 
 /**
  * @brief Get promiscuous mode configuration
