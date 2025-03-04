@@ -42,6 +42,5 @@ endif # BT
 source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
 source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"
 source "$(ZEPHYR_ALIF_MODULE_DIR)/lc3/zephyr/Kconfig"
-source "$(ZEPHYR_ALIF_MODULE_DIR)/ieee802154/Kconfig"
 source "$(ZEPHYR_ALIF_MODULE_DIR)/ble/zephyr/Kconfig"
 

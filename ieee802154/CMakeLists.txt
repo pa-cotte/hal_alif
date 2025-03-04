@@ -16,9 +16,6 @@ if(CONFIG_OPENTHREAD)
   zephyr_sources(src/alif_ot_plf.c)
 endif()
 
-zephyr_library_sources_ifdef(CONFIG_INTEL_HDA
-		${SOF_DRIVERS_PATH}/intel/hda/hda-dma.c
-	)
 if(CONFIG_IEEE802154_ALIF_TX_ENCRYPT)
 zephyr_library_link_libraries_ifdef(CONFIG_MBEDTLS mbedTLS)
 endif()
