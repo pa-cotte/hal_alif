@@ -39,8 +39,8 @@ endif # ALIF_BLE_HOST
 
 endif # BT
 
-source "$(ZEPHYR_ALIF_MODULE_DIR)/se_services/zephyr/Kconfig"
-source "$(ZEPHYR_ALIF_MODULE_DIR)/common/zephyr/Kconfig"
-source "$(ZEPHYR_ALIF_MODULE_DIR)/lc3/zephyr/Kconfig"
-source "$(ZEPHYR_ALIF_MODULE_DIR)/ble/zephyr/Kconfig"
+rsource "../se_services/zephyr/Kconfig"
+rsource "../common/zephyr/Kconfig"
+rsource "../lc3/zephyr/Kconfig"
+rsource "../ble/zephyr/Kconfig"
 
