@@ -1,3 +1,3 @@
 zephyr_include_directories(include)
 
-zephyr_link_libraries_ifdef(CONFIG_ALIF_BLE_HOST_PATCHING ${CONFIG_ALIF_BLE_HOST_PATCH_FILE})
+zephyr_link_libraries_ifdef(CONFIG_ALIF_BLE_HOST_PATCHING rom_ble_stack.patch.elf)
