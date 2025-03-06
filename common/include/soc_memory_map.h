@@ -21,17 +21,15 @@ extern "C" {
 
 static inline uint32_t local_to_global(const volatile void *local_addr)
 {
-#if defined(CONFIG_SOC_E7_AK_APSS) || defined(CONFIG_SOC_E7_DK_APSS)
-	return (uint32_t)local_addr;
-#else
 	uint32_t addr = (uint32_t)local_addr;
-	if((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE)))
+
+	if ((addr >= DTCM_BASE) && (addr < (DTCM_BASE + DTCM_SIZE))) {
 		return (addr - DTCM_BASE + DTCM_GLOBAL_BASE);
-	else if((addr < (ITCM_BASE + ITCM_SIZE)))
+	} else if ((addr < (ITCM_BASE + ITCM_SIZE))) {
 		return (addr - ITCM_BASE + ITCM_GLOBAL_BASE);
-	else
+	} else {
 		return (addr);
-#endif
+	}
 }
 
 #ifdef __cplusplus
